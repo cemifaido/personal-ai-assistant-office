@@ -371,13 +371,122 @@ async function handleWordAskFullDoc() {
 
 /* ===================== Excel ===================== */
 
-function handleExcelFormula() {
+const EXCEL_MAX_CELLS = 40000; // oltre, si inviano solo le prime righe (dichiarandolo)
+
+function colLetter(index) {
+  let s = '', n = index + 1;
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
+function excelErrorMessage(err) {
+  if (err && (err.code === 'InvalidSelection' || /selection/i.test(err.message || ''))) {
+    return 'Seleziona un solo intervallo continuo (non più aree con Ctrl).';
+  }
+  return 'Errore Excel: ' + (err && err.message ? err.message : err);
+}
+
+/** Struttura del foglio: nome, area dati, intestazioni con lettere di colonna, cella attiva. */
+async function readExcelOverview() {
+  return Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const used = sheet.getUsedRangeOrNullObject(true);
+    const active = ctx.workbook.getActiveCell();
+    sheet.load('name');
+    active.load('address');
+    used.load(['address', 'rowIndex', 'columnIndex', 'columnCount', 'rowCount']);
+    await ctx.sync();
+    if (used.isNullObject) return `Foglio "${sheet.name}" vuoto. Cella attiva: ${active.address}.`;
+    const cols = Math.min(used.columnCount, 60);
+    const head = sheet.getRangeByIndexes(used.rowIndex, used.columnIndex, 1, cols);
+    head.load('text');
+    await ctx.sync();
+    const headers = head.text[0]
+      .map((h, i) => `${colLetter(used.columnIndex + i)} = ${h || '(vuota)'}`)
+      .join('\n');
+    return `Foglio: "${sheet.name}"\nArea dati: ${used.address} (${used.rowCount} righe, la prima è l'intestazione)\n` +
+           `Cella attiva (dove verrà inserita la formula): ${active.address}\nColonne:\n${headers}`;
+  });
+}
+
+/** Legge la selezione limitata all'area con dati. Restituisce testo per il modello. */
+async function readExcelSelection() {
+  return Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const sel = ctx.workbook.getSelectedRange();
+    const used = sheet.getUsedRangeOrNullObject(true);
+    sheet.load('name');
+    used.load(['rowIndex']);
+    await ctx.sync();
+    if (used.isNullObject) throw new Error('Il foglio non contiene dati.');
+
+    // Colonne intere / selezioni enormi: si tiene solo la parte con dati.
+    const range = sel.getIntersectionOrNullObject(sheet.getUsedRange(true));
+    range.load(['address', 'rowCount', 'columnCount', 'rowIndex', 'columnIndex']);
+    await ctx.sync();
+    if (range.isNullObject) throw new Error('La selezione non contiene dati.');
+
+    const maxRows = Math.max(1, Math.floor(EXCEL_MAX_CELLS / range.columnCount));
+    const take = Math.min(range.rowCount, maxRows);
+    const part = take < range.rowCount ? range.getResizedRange(take - range.rowCount, 0) : range;
+    part.load(['values', 'text']);
+
+    // Se la selezione non include la riga di intestazione, la aggiungiamo.
+    let header = null;
+    if (range.rowIndex > used.rowIndex) {
+      header = sheet.getRangeByIndexes(used.rowIndex, range.columnIndex, 1, range.columnCount);
+      header.load('text');
+    }
+    await ctx.sync();
+
+    const headerRow = header ? header.text[0] : part.text[0];
+    const dataValues = header ? part.values : part.values.slice(1);
+    const dataText = header ? part.text : part.text.slice(1);
+
+    // Statistiche esatte calcolate qui: i modelli sbagliano spesso i conti su molte righe.
+    const stats = [];
+    for (let c = 0; c < range.columnCount; c++) {
+      const nums = [];
+      let looksDate = false;
+      dataValues.forEach((row, r) => {
+        if (typeof row[c] === 'number') {
+          nums.push(row[c]);
+          if (/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(String(dataText[r][c]))) looksDate = true;
+        }
+      });
+      if (nums.length >= 2 && !looksDate) {
+        const sum = nums.reduce((a, b) => a + b, 0);
+        const fmt = (x) => Number.isInteger(x) ? String(x) : x.toFixed(2);
+        stats.push(`${colLetter(range.columnIndex + c)} "${headerRow[c] || ''}": n=${nums.length}, somma=${fmt(sum)}, media=${fmt(sum / nums.length)}, min=${fmt(Math.min(...nums))}, max=${fmt(Math.max(...nums))}`);
+      }
+    }
+
+    const lines = (header ? [headerRow].concat(part.text) : part.text).map(r => r.join('\t')).join('\n');
+    const truncated = take < range.rowCount ? `\nATTENZIONE: inviate solo le prime ${take} righe su ${range.rowCount}.` : '';
+    return `Foglio: "${sheet.name}" — intervallo con dati: ${range.address} (${range.rowCount} righe × ${range.columnCount} colonne)${truncated}\n\n` +
+           `STATISTICHE CALCOLATE (esatte, su tutte le righe inviate):\n${stats.join('\n') || '(nessuna colonna numerica)'}\n\n` +
+           `DATI (come visualizzati, separati da TAB):\n${lines}`;
+  });
+}
+
+async function handleExcelFormula() {
   const prompt = document.getElementById('excel-formula-prompt').value.trim();
   if (!prompt) { notify('Descrivi cosa vuoi calcolare.', 'warn'); return; }
+  let overview = '';
+  try {
+    overview = typeof Excel !== 'undefined'
+      ? await readExcelOverview()
+      : 'Foglio: "Prova"\nArea dati: A1:C4\nCella attiva: E2\nColonne:\nA = Mese\nB = Vendite\nC = Costi';
+  } catch (err) {
+    notify(excelErrorMessage(err), 'error');
+    return;
+  }
   return runAI('Generazione formula', {
     prompt: `L'utente vuole una formula Excel per: "${prompt}".
+Usa i riferimenti reali delle colonne indicate nel contesto (escludi la riga di intestazione).
 Prima riga: "FORMULA: =..." con la formula in sintassi inglese (nomi funzione inglesi, separatore argomenti virgola).
-Poi una spiegazione di massimo 2 righe.`,
+Poi una spiegazione di massimo 2 righe, citando le colonne usate.`,
+    context: overview,
     system: 'Sei un esperto di Microsoft Excel e formule avanzate.'
   });
 }
@@ -385,25 +494,21 @@ Poi una spiegazione di massimo 2 righe.`,
 async function handleExcelAnalyzeRange() {
   let rangeData;
   try {
-    if (typeof Excel !== 'undefined') {
-      rangeData = await Excel.run(async (context) => {
-        const range = context.workbook.getSelectedRange();
-        range.load(['values', 'address', 'rowCount', 'columnCount']);
-        await context.sync();
-        const rows = range.values.map(r => r.join('\t')).join('\n');
-        return `Intervallo: ${range.address} (${range.rowCount}x${range.columnCount})\nValori:\n${rows}`;
-      });
-    } else {
-      rangeData = 'Intervallo: A1:C4\nValori:\nMese\tVendite\tCosti\nGennaio\t12000\t8000\nFebbraio\t15000\t8500\nMarzo\t11000\t9200';
-    }
+    setLoader(true, 'Lettura delle celle selezionate...');
+    rangeData = typeof Excel !== 'undefined'
+      ? await readExcelSelection()
+      : 'Foglio: "Prova" — intervallo con dati: A1:C4\n\nSTATISTICHE CALCOLATE:\nB "Vendite": n=3, somma=38000, media=12666.67, min=11000, max=15000\n\nDATI:\nMese\tVendite\tCosti\nGennaio\t12000\t8000\nFebbraio\t15000\t8500\nMarzo\t11000\t9200';
   } catch (err) {
-    notify('Errore Excel: ' + err.message, 'error');
+    setLoader(false);
+    notify(excelErrorMessage(err), 'error');
     return;
   }
+  setLoader(false);
   return runAI('Analisi dati', {
-    prompt: `Analizza questa tabella Excel. Fornisci:
-- Sintesi numerica (somme, medie o trend principali)
-- Punti di attenzione o anomalie
+    prompt: `Analizza questi dati Excel. Per i valori numerici usa le STATISTICHE CALCOLATE (sono esatte): non ricalcolarle.
+Fornisci:
+- Sintesi (cosa contengono i dati, valori medi e intervalli principali)
+- Punti di attenzione o anomalie (indica righe/valori specifici)
 - Un suggerimento pratico.`,
     context: rangeData
   });
