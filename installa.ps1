@@ -90,8 +90,10 @@ if ($PulisciVecchiaVersione -or $Disinstalla) {
 # ---------------------------------------------------------------
 if ($Disinstalla) {
   Step "Disinstallazione add-in Word/Excel e impostazioni macro"
-  if (Test-Path "$wefDev\$addinId") { Remove-Item "$wefDev\$addinId" -Recurse -Force; Ok "add-in Word/Excel rimosso" }
-  else { Skip "add-in Word/Excel non registrato" }
+  $removed = $false
+  if (Test-Path "$wefDev\$addinId") { Remove-Item "$wefDev\$addinId" -Recurse -Force; $removed = $true }
+  if ((Get-ItemProperty $wefDev -ErrorAction SilentlyContinue).$addinId) { Remove-ItemProperty $wefDev -Name $addinId -Force; $removed = $true }
+  if ($removed) { Ok "add-in Word/Excel rimosso" } else { Skip "add-in Word/Excel non registrato" }
   if (Test-Path $vbaKey) { Remove-Item $vbaKey -Recurse -Force; Ok "impostazioni e chiavi della macro rimosse" }
   else { Skip "nessuna impostazione della macro" }
   Clear-WefCache
@@ -113,6 +115,10 @@ if ($BaseUrl) {
   (Get-Content $template -Raw).Replace('__BASE_URL__', $BaseUrl) | Set-Content $manifest -Encoding UTF8
   Ok "creato manifest-word-excel.xml"
 
+  if (-not (Test-Path $wefDev)) { New-Item $wefDev -Force | Out-Null }
+  # Formato letto da Office per il sideload: valore <Id> = percorso del manifest
+  Set-ItemProperty $wefDev -Name $addinId -Value $manifest
+  # Formato secondario (sottochiave) usato da alcuni strumenti
   New-Item "$wefDev\$addinId" -Force | Out-Null
   Set-ItemProperty "$wefDev\$addinId" -Name ManifestPath -Value $manifest
   Ok "manifest registrato per l'utente corrente"
