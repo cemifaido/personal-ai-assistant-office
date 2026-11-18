@@ -392,17 +392,51 @@ function excelErrorMessage(err) {
   return 'Errore Excel: ' + (err && err.message ? err.message : err);
 }
 
-/** Struttura del foglio: nome, area dati, intestazioni con lettere di colonna, cella attiva. */
+/**
+ * Dove va la formula, in base alla selezione:
+ * - se la selezione parte dall'intestazione (o è la colonna intera) si salta l'intestazione;
+ * - se copre più righe, si estende fino all'ultima riga di dati (non oltre).
+ */
+async function getFormulaTarget(ctx) {
+  const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+  const sel = ctx.workbook.getSelectedRange();
+  const used = sheet.getUsedRangeOrNullObject(true);
+  sel.load(['rowIndex', 'columnIndex', 'rowCount']);
+  used.load(['rowIndex', 'rowCount']);
+  await ctx.sync();
+
+  let start = sel.rowIndex;
+  let end = sel.rowIndex + sel.rowCount - 1;
+  let skippedHeader = false;
+  if (!used.isNullObject) {
+    const usedLast = used.rowIndex + used.rowCount - 1;
+    if (sel.rowIndex <= used.rowIndex) { start = used.rowIndex + 1; skippedHeader = true; }
+    if (sel.rowCount > 1) end = Math.min(end, usedLast);
+  }
+  if (sel.rowCount === 1 || end < start) end = start;
+
+  const first = sheet.getRangeByIndexes(start, sel.columnIndex, 1, 1);
+  const full = sheet.getRangeByIndexes(start, sel.columnIndex, end - start + 1, 1);
+  first.load('address');
+  full.load('address');
+  await ctx.sync();
+  const strip = (a) => a.replace(/^.*!/, '');
+  return { first, full, rows: end - start + 1, firstAddress: strip(first.address), fullAddress: strip(full.address), skippedHeader };
+}
+
+/** Struttura del foglio: nome, area dati, intestazioni con lettere di colonna, destinazione della formula. */
 async function readExcelOverview() {
   return Excel.run(async (ctx) => {
     const sheet = ctx.workbook.worksheets.getActiveWorksheet();
     const used = sheet.getUsedRangeOrNullObject(true);
-    const active = ctx.workbook.getActiveCell();
     sheet.load('name');
-    active.load('address');
     used.load(['address', 'rowIndex', 'columnIndex', 'columnCount', 'rowCount']);
     await ctx.sync();
-    if (used.isNullObject) return `Foglio "${sheet.name}" vuoto. Cella attiva: ${active.address}.`;
+    const target = await getFormulaTarget(ctx);
+    const dest = target.rows > 1
+      ? `${target.firstAddress} (prima riga di dati); se la formula è per riga verrà estesa a ${target.fullAddress}`
+      : target.firstAddress;
+    if (used.isNullObject) return `Foglio "${sheet.name}" vuoto. Cella di destinazione: ${dest}.`;
     const cols = Math.min(used.columnCount, 60);
     const sampleRows = Math.min(used.rowCount, 4); // intestazione + 3 righe di esempio
     const sample = sheet.getRangeByIndexes(used.rowIndex, used.columnIndex, sampleRows, cols);
@@ -429,7 +463,7 @@ async function readExcelOverview() {
 
     const lang = (Office.context && Office.context.displayLanguage) || 'it-IT';
     return `Foglio: "${sheet.name}"\nArea dati: ${used.address} (${used.rowCount} righe, la prima è l'intestazione)\n` +
-           `Cella attiva (dove verrà inserita la formula): ${active.address}\n` +
+           `Cella di destinazione della formula: ${dest}\n` +
            `Lingua di Excel: ${lang}\nColonne:\n${headers}`;
   });
 }
@@ -501,7 +535,7 @@ async function handleExcelFormula() {
   try {
     overview = typeof Excel !== 'undefined'
       ? await readExcelOverview()
-      : 'Foglio: "Prova"\nArea dati: A1:C4\nCella attiva: E2\nColonne:\nA = Mese\nB = Vendite\nC = Costi';
+      : 'Foglio: "Prova"\nArea dati: A1:C4\nCella di destinazione della formula: D2 (prima riga di dati); se la formula è per riga verrà estesa a D2:D4\nColonne:\nA = "Mese" — testo\nB = "Vendite" — numero\nC = "Costi" — numero';
   } catch (err) {
     notify(excelErrorMessage(err), 'error');
     return;
@@ -509,14 +543,18 @@ async function handleExcelFormula() {
   return runAI('Generazione formula', {
     prompt: `L'utente vuole una formula Excel per: "${prompt}".
 Regole:
-- Usa le colonne reali indicate nel contesto. Se la formula va ripetuta riga per riga, riferisciti alla STESSA RIGA della cella attiva (es. cella attiva C2 → B2), così si può trascinare in giù.
+- Usa le colonne reali indicate nel contesto. La formula è scritta nella cella di destinazione indicata: se va ripetuta riga per riga, riferisciti alla STESSA RIGA di quella cella (es. destinazione C2 → B2); verrà estesa alle righe sotto adattando i riferimenti.
+- Per un calcolo unico su tutta la colonna (media, totale, conteggio) usa l'intervallo dei dati senza intestazione (es. E2:E120).
 - Rispetta il tipo indicato: una "data vera" è un numero seriale, NON va scomposta con funzioni di testo (LEFT/MID/RIGHT); un "testo" sì.
 ${excelIsItalian()
   ? `- Scrivi la formula in ITALIANO, esattamente come la si digita in Excel italiano: nomi delle funzioni italiani (es. SOMMA, MEDIA, SE, CERCA.X, TESTO, DATA, STRINGA.ESTRAI) e separatore argomenti punto e virgola ";". Separatore decimale virgola.
 - Nei codici formato di TESTO usa i codici italiani: g=giorno, m=mese, a=anno (es. "mm/gg/aaaa").`
   : `- Write the formula in English with comma as argument separator.`}
 - Se il risultato si ottiene meglio senza formula (es. cambiare il formato delle celle), dillo nella spiegazione.
-Prima riga: "FORMULA: =...". Poi una spiegazione di massimo 3 righe, citando le colonne usate.`,
+Formato della risposta:
+riga 1: "FORMULA: =..."
+riga 2: "TIPO: RIGA" se la formula va ripetuta per ogni riga di dati, oppure "TIPO: UNICA" se è un solo calcolo (totale, media, conteggio...)
+poi una spiegazione di massimo 3 righe, citando le colonne usate.`,
     context: overview,
     system: 'Sei un esperto di Microsoft Excel e formule avanzate.'
   });
@@ -581,17 +619,46 @@ function parseTable(text) {
 
 async function applyToExcel(text, rawText) {
   await Excel.run(async (context) => {
-    const start = context.workbook.getSelectedRange().getCell(0, 0);
-
     const formulaMatch = rawText.match(/FORMULA:\s*`*(=[^\r\n`]+)/i) || text.match(/^(=[^\r\n]+)/);
     if (formulaMatch) {
       const f = formulaMatch[1].trim();
-      // Formula italiana → formulasLocal (come digitata in Excel); altrimenti formulas (inglese).
-      if (excelIsItalian()) start.formulasLocal = [[f]]; else start.formulas = [[f]];
+      const perRow = /TIPO:\s*RIGA/i.test(rawText);
+      const t = await getFormulaTarget(context);
+      const dest = perRow && t.rows > 1 ? t.full : t.first;
+      const destAddress = perRow && t.rows > 1 ? t.fullAddress : t.firstAddress;
+
+      dest.load('values');
       await context.sync();
-      notify('Formula inserita nella cella attiva. Se compare #NOME?, un nome di funzione non è stato riconosciuto: correggilo o rigenera.', 'success');
+      const occupied = dest.values.some(r => r.some(v => v !== '' && v !== null));
+      if (occupied && !excelOverwriteArmed) {
+        excelOverwriteArmed = true;
+        notify(`${destAddress} contiene già dati. Premi di nuovo il pulsante per sovrascrivere, oppure cambia selezione.`, 'warn');
+        return;
+      }
+
+      // Formula italiana → formulasLocal (come digitata in Excel); altrimenti formulas (inglese).
+      if (excelIsItalian()) t.first.formulasLocal = [[f]]; else t.first.formulas = [[f]];
+      if (dest === t.full) {
+        // Estensione come il trascinamento: in R1C1 i riferimenti relativi si adattano da soli.
+        t.first.load('formulasR1C1');
+        await context.sync();
+        const r1c1 = t.first.formulasR1C1[0][0];
+        t.full.formulasR1C1 = Array.from({ length: t.rows }, () => [r1c1]);
+      }
+      await context.sync();
+      excelOverwriteArmed = false;
+
+      let msg = dest === t.full
+        ? `Formula inserita in ${t.fullAddress} (${t.rows} righe).`
+        : `Formula inserita in ${t.firstAddress}.`;
+      if (t.skippedHeader) msg += ' Intestazione saltata.';
+      if (!perRow && t.rows > 1) msg += ' È un calcolo unico: non è stata ripetuta sulle altre righe.';
+      msg += '\nSe compare #NOME?, un nome di funzione non è stato riconosciuto: rigenera o correggilo.';
+      notify(msg, 'success');
       return;
     }
+
+    const start = context.workbook.getSelectedRange().getCell(0, 0);
 
     const matrix = parseTable(text) || [[text]];
     const target = start.getResizedRange(matrix.length - 1, matrix[0].length - 1);
