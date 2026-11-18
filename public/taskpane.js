@@ -398,14 +398,33 @@ async function readExcelOverview() {
     await ctx.sync();
     if (used.isNullObject) return `Foglio "${sheet.name}" vuoto. Cella attiva: ${active.address}.`;
     const cols = Math.min(used.columnCount, 60);
-    const head = sheet.getRangeByIndexes(used.rowIndex, used.columnIndex, 1, cols);
-    head.load('text');
+    const sampleRows = Math.min(used.rowCount, 4); // intestazione + 3 righe di esempio
+    const sample = sheet.getRangeByIndexes(used.rowIndex, used.columnIndex, sampleRows, cols);
+    sample.load(['text', 'values', 'numberFormat']);
     await ctx.sync();
-    const headers = head.text[0]
-      .map((h, i) => `${colLetter(used.columnIndex + i)} = ${h || '(vuota)'}`)
-      .join('\n');
+
+    // Per ogni colonna: intestazione, tipo REALE del contenuto ed esempi come visualizzati.
+    const headers = sample.text[0].map((h, i) => {
+      let type = 'vuota';
+      const examples = [];
+      for (let r = 1; r < sampleRows; r++) {
+        const v = sample.values[r][i];
+        const fmt = String(sample.numberFormat[r][i] || '');
+        if (v === '' || v === null) continue;
+        examples.push(sample.text[r][i]);
+        if (typeof v === 'number') {
+          type = /[dgmyaDGMYA]/.test(fmt) && !/^General|^Generale/i.test(fmt)
+            ? `data vera (numero seriale, formato "${fmt}")` : 'numero';
+        } else if (typeof v === 'boolean') type = 'logico';
+        else type = 'testo';
+      }
+      return `${colLetter(used.columnIndex + i)} = "${h || '(senza intestazione)'}" — ${type}${examples.length ? ' — es.: ' + examples.join(' | ') : ''}`;
+    }).join('\n');
+
+    const lang = (Office.context && Office.context.displayLanguage) || 'it-IT';
     return `Foglio: "${sheet.name}"\nArea dati: ${used.address} (${used.rowCount} righe, la prima è l'intestazione)\n` +
-           `Cella attiva (dove verrà inserita la formula): ${active.address}\nColonne:\n${headers}`;
+           `Cella attiva (dove verrà inserita la formula): ${active.address}\n` +
+           `Lingua di Excel: ${lang}\nColonne:\n${headers}`;
   });
 }
 
@@ -483,9 +502,13 @@ async function handleExcelFormula() {
   }
   return runAI('Generazione formula', {
     prompt: `L'utente vuole una formula Excel per: "${prompt}".
-Usa i riferimenti reali delle colonne indicate nel contesto (escludi la riga di intestazione).
-Prima riga: "FORMULA: =..." con la formula in sintassi inglese (nomi funzione inglesi, separatore argomenti virgola).
-Poi una spiegazione di massimo 2 righe, citando le colonne usate.`,
+Regole:
+- Usa le colonne reali indicate nel contesto. Se la formula va ripetuta riga per riga, riferisciti alla STESSA RIGA della cella attiva (es. cella attiva C2 → B2), così si può trascinare in giù.
+- Rispetta il tipo indicato: una "data vera" è un numero seriale, NON va scomposta con funzioni di testo (LEFT/MID/RIGHT); un "testo" sì.
+- Nomi delle funzioni in inglese e separatore argomenti virgola (verranno tradotti automaticamente).
+- ATTENZIONE: le stringhe di formato dentro TEXT() NON vengono tradotte: scrivile nella lingua di Excel indicata (it-IT: g=giorno, m=mese, a=anno, es. "mm/gg/aaaa").
+- Se il risultato si ottiene meglio senza formula (es. cambiare il formato delle celle), dillo nella spiegazione.
+Prima riga: "FORMULA: =...". Poi una spiegazione di massimo 3 righe, citando le colonne usate.`,
     context: overview,
     system: 'Sei un esperto di Microsoft Excel e formule avanzate.'
   });

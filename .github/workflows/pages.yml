@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Versione nei riferimenti (evita la cache del pannello)
+        run: sed -i "s/__VERSION__/${GITHUB_SHA::8}/g" public/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
