@@ -373,6 +373,12 @@ async function handleWordAskFullDoc() {
 
 const EXCEL_MAX_CELLS = 40000; // oltre, si inviano solo le prime righe (dichiarandolo)
 
+/** Excel in italiano? (fuori da Office, in modalità test, si assume di sì) */
+function excelIsItalian() {
+  const lang = (typeof Office !== 'undefined' && Office.context && Office.context.displayLanguage) || 'it-IT';
+  return /^it/i.test(lang);
+}
+
 function colLetter(index) {
   let s = '', n = index + 1;
   while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
@@ -505,8 +511,10 @@ async function handleExcelFormula() {
 Regole:
 - Usa le colonne reali indicate nel contesto. Se la formula va ripetuta riga per riga, riferisciti alla STESSA RIGA della cella attiva (es. cella attiva C2 → B2), così si può trascinare in giù.
 - Rispetta il tipo indicato: una "data vera" è un numero seriale, NON va scomposta con funzioni di testo (LEFT/MID/RIGHT); un "testo" sì.
-- Nomi delle funzioni in inglese e separatore argomenti virgola (verranno tradotti automaticamente).
-- ATTENZIONE: le stringhe di formato dentro TEXT() NON vengono tradotte: scrivile nella lingua di Excel indicata (it-IT: g=giorno, m=mese, a=anno, es. "mm/gg/aaaa").
+${excelIsItalian()
+  ? `- Scrivi la formula in ITALIANO, esattamente come la si digita in Excel italiano: nomi delle funzioni italiani (es. SOMMA, MEDIA, SE, CERCA.X, TESTO, DATA, STRINGA.ESTRAI) e separatore argomenti punto e virgola ";". Separatore decimale virgola.
+- Nei codici formato di TESTO usa i codici italiani: g=giorno, m=mese, a=anno (es. "mm/gg/aaaa").`
+  : `- Write the formula in English with comma as argument separator.`}
 - Se il risultato si ottiene meglio senza formula (es. cambiare il formato delle celle), dillo nella spiegazione.
 Prima riga: "FORMULA: =...". Poi una spiegazione di massimo 3 righe, citando le colonne usate.`,
     context: overview,
@@ -577,9 +585,11 @@ async function applyToExcel(text, rawText) {
 
     const formulaMatch = rawText.match(/FORMULA:\s*`*(=[^\r\n`]+)/i) || text.match(/^(=[^\r\n]+)/);
     if (formulaMatch) {
-      start.formulas = [[formulaMatch[1].trim()]];
+      const f = formulaMatch[1].trim();
+      // Formula italiana → formulasLocal (come digitata in Excel); altrimenti formulas (inglese).
+      if (excelIsItalian()) start.formulasLocal = [[f]]; else start.formulas = [[f]];
       await context.sync();
-      notify('Formula inserita nella cella attiva.', 'success');
+      notify('Formula inserita nella cella attiva. Se compare #NOME?, un nome di funzione non è stato riconosciuto: correggilo o rigenera.', 'success');
       return;
     }
 

@@ -219,11 +219,17 @@ async function aiListModels(provider, apiKey) {
 /** Markdown → testo semplice (per Word/Excel). */
 function aiMarkdownToPlain(md) {
   if (!md) return '';
-  return md.trim()
-    .replace(/^```[a-zA-Z]*\r?\n?/gm, '').replace(/\r?\n?```$/gm, '')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1$2')
-    .replace(/^[*-]\s+/gm, '• ');
+  const noFences = md.trim().replace(/^```[a-zA-Z]*\r?\n?/gm, '').replace(/\r?\n?```$/gm, '');
+  return noFences.split('\n').map(line => {
+    // Le righe con formule (=... o FORMULA: =...) restano intatte: "*" è una moltiplicazione.
+    if (/^\s*(\*\*)?\s*(FORMULA\s*:)?\s*(\*\*)?\s*`*=/i.test(line)) {
+      return line.replace(/\*\*(FORMULA\s*:)\*\*/i, '$1').replace(/`/g, '');
+    }
+    return line
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/^#{1,6}\s+/, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/(^|[^*\w])\*([^*\n]+)\*(?![*\w])/g, '$1$2')
+      .replace(/^[*-]\s+/, '• ');
+  }).join('\n');
 }
