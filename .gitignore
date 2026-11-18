@@ -6,4 +6,4 @@ _obsoleto/certs/
 *.key
 
 # Generato da installa.ps1 (contiene l'URL locale di pubblicazione)
-manifest-word-excel.xml
+manifest/

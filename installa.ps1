@@ -26,7 +26,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $root      = $PSScriptRoot
 $template  = Join-Path $root 'manifest-word-excel.template.xml'
-$manifest  = Join-Path $root 'manifest-word-excel.xml'
+$manifestDir = Join-Path $root 'manifest'                 # cartella usata come catalogo condiviso
+$manifest  = Join-Path $manifestDir 'manifest-word-excel.xml'
+# Percorso di rete equivalente (condivisione amministrativa del disco)
+$catalogUrl = '\\localhost\' + $manifestDir.Substring(0,1).ToLower() + '$' + $manifestDir.Substring(2)
+$catalogId = '{6F1D2B9E-3C4A-4E8B-9A57-2D0C8E1B4A63}'
 $addinId   = 'ecb39046-2d14-45ba-b5ea-94524ea141db'   # Id del manifest Word/Excel
 $oldOutlookId = '4306873d-fb66-4fe3-87ac-9de2efc7586d' # vecchio add-in Outlook web (non usabile su POP)
 $wefDev    = 'HKCU:\Software\Microsoft\Office\16.0\WEF\Developer'
@@ -93,6 +97,7 @@ if ($Disinstalla) {
   $removed = $false
   if (Test-Path "$wefDev\$addinId") { Remove-Item "$wefDev\$addinId" -Recurse -Force; $removed = $true }
   if ((Get-ItemProperty $wefDev -ErrorAction SilentlyContinue).$addinId) { Remove-ItemProperty $wefDev -Name $addinId -Force; $removed = $true }
+  if (Test-Path "$wefCat\$catalogId") { Remove-Item "$wefCat\$catalogId" -Recurse -Force; $removed = $true }
   if ($removed) { Ok "add-in Word/Excel rimosso" } else { Skip "add-in Word/Excel non registrato" }
   if (Test-Path $vbaKey) { Remove-Item $vbaKey -Recurse -Force; Ok "impostazioni e chiavi della macro rimosse" }
   else { Skip "nessuna impostazione della macro" }
@@ -112,8 +117,20 @@ if ($BaseUrl) {
     else { Ok "index.html raggiungibile" }
   } catch { Write-Warning "Impossibile scaricare $BaseUrl/index.html : $($_.Exception.Message). Controlla la pubblicazione." }
 
+  New-Item $manifestDir -ItemType Directory -Force | Out-Null
   (Get-Content $template -Raw).Replace('__BASE_URL__', $BaseUrl) | Set-Content $manifest -Encoding UTF8
-  Ok "creato manifest-word-excel.xml"
+  Ok "creato manifest\manifest-word-excel.xml"
+
+  # Catalogo in cartella condivisa (metodo affidabile su Office desktop)
+  if (Test-Path "$catalogUrl\manifest-word-excel.xml") {
+    New-Item "$wefCat\$catalogId" -Force | Out-Null
+    Set-ItemProperty "$wefCat\$catalogId" -Name Id -Value $catalogId
+    Set-ItemProperty "$wefCat\$catalogId" -Name Url -Value $catalogUrl
+    Set-ItemProperty "$wefCat\$catalogId" -Name Flags -Value 1 -Type DWord
+    Ok "catalogo attendibile registrato: $catalogUrl"
+  } else {
+    Write-Warning "Cartella non raggiungibile come $catalogUrl : aggiungi a mano come catalogo una condivisione di rete che punti a $manifestDir"
+  }
 
   if (-not (Test-Path $wefDev)) { New-Item $wefDev -Force | Out-Null }
   # Formato letto da Office per il sideload: valore <Id> = percorso del manifest
