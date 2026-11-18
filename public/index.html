@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal AI Assistant</title>
+  
+  <!-- Office JavaScript API -->
+  <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js" type="text/javascript"></script>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="app-logo">🤖</span>
+        <span class="header-title">Personal AI Assistant</span>
+      </div>
+      <div class="header-right">
+        <span id="host-badge" class="host-badge">Rilevamento...</span>
+        <button id="btn-toggle-settings" class="btn-icon" title="Impostazioni API Key e Modelli">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Model Selector Bar -->
+    <div class="model-bar">
+      <label for="select-model" class="model-label">Modello Attivo:</label>
+      <!-- Le opzioni vengono generate da AI_CATALOG in ai.js -->
+      <select id="select-model" class="model-select"></select>
+    </div>
+
+    <!-- Messaggi (sostituisce alert(), non affidabile nei pannelli Office) -->
+    <div id="notice" class="notice hidden" role="status">
+      <span id="notice-text"></span>
+      <button id="notice-close" class="btn-icon" title="Chiudi">✖</button>
+    </div>
+
+    <!-- Settings Card (Collapsible) -->
+    <section id="settings-card" class="settings-card hidden">
+      <div class="settings-header">
+        <h4>🔑 Gestione Chiavi API</h4>
+        <small>Salvate solo in questo pannello e inviate unicamente al provider scelto.</small>
+      </div>
+      <div class="settings-body">
+        
+        <!-- Gemini Key -->
+        <div class="key-field">
+          <div class="key-label-row">
+            <label for="input-gemini-key">🔵 Google Gemini:</label>
+            <span id="badge-gemini-status" class="key-badge">...</span>
+          </div>
+          <div class="input-with-button">
+            <input type="password" id="input-gemini-key" placeholder="AIzaSy..." />
+          </div>
+        </div>
+
+        <!-- OpenAI Key -->
+        <div class="key-field">
+          <div class="key-label-row">
+            <label for="input-openai-key">🟢 OpenAI / Codex:</label>
+            <span id="badge-openai-status" class="key-badge">...</span>
+          </div>
+          <div class="input-with-button">
+            <input type="password" id="input-openai-key" placeholder="sk-proj-..." />
+          </div>
+        </div>
+
+        <!-- Claude Key -->
+        <div class="key-field">
+          <div class="key-label-row">
+            <label for="input-claude-key">🟠 Anthropic Claude:</label>
+            <span id="badge-claude-status" class="key-badge">...</span>
+          </div>
+          <div class="input-with-button">
+            <input type="password" id="input-claude-key" placeholder="sk-ant-..." />
+          </div>
+        </div>
+
+        <div class="button-group" style="margin-top: 8px;">
+          <button id="btn-save-all-keys" class="btn-primary">Salva chiavi</button>
+          <button id="btn-verify-keys" class="btn-secondary" title="Controlla le chiavi e che i modelli del catalogo esistano">Verifica chiavi</button>
+        </div>
+        <div id="api-status-msg" class="status-msg"></div>
+      </div>
+    </section>
+
+    <!-- Manual Host Switcher for Browser Testing -->
+    <div id="browser-tabs" class="browser-tabs hidden">
+      <button class="tab-btn active" data-tab="word">📄 Word</button>
+      <button class="tab-btn" data-tab="excel">📊 Excel</button>
+      <button class="tab-btn" data-tab="outlook">✉️ Outlook</button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="global-loader" class="loader-overlay hidden">
+      <div class="spinner"></div>
+      <p id="loader-text">Elaborazione in corso...</p>
+      <button id="btn-cancel" class="btn-outline" style="margin-top: 8px;">Annulla</button>
+    </div>
+
+    <!-- MAIN PANELS -->
+    <main class="main-content">
+
+      <!-- ==================== WORD PANEL ==================== -->
+      <section id="panel-word" class="host-panel">
+        <div class="panel-section">
+          <h3>✍️ Lavorazione Testo Selezionato</h3>
+          <p class="section-desc">Seleziona del testo nel documento Word e scegli un'azione:</p>
+          
+          <div class="action-grid">
+            <button id="btn-word-rewrite" class="btn-action">
+              <span class="icon">✨</span>
+              <span>Riscrivi & Migliora</span>
+            </button>
+            <button id="btn-word-grammar" class="btn-action">
+              <span class="icon">🔍</span>
+              <span>Correggi Bozze</span>
+            </button>
+            <button id="btn-word-summarize" class="btn-action">
+              <span class="icon">📑</span>
+              <span>Sintetizza</span>
+            </button>
+            <button id="btn-word-translate" class="btn-action">
+              <span class="icon">🌐</span>
+              <span>Traduci in Inglese</span>
+            </button>
+          </div>
+
+          <div class="inline-options">
+            <label for="word-tone-select">Tono riscrittura:</label>
+            <select id="word-tone-select" class="custom-select">
+              <option value="professionale e formale">Professionale & Formale</option>
+              <option value="conciso e sintetico">Conciso & Diretto</option>
+              <option value="persuasivo e commerciale">Persuasivo & Commerciale</option>
+              <option value="accademico ed esplicativo">Accademico & Dettagliato</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>💬 Chiedi o Genera</h3>
+          <textarea id="word-custom-prompt" class="prompt-box" rows="2" placeholder="Es: 'Scrivi un'introduzione su questo argomento', oppure poni una domanda sul testo..."></textarea>
+          <div class="button-group">
+            <button id="btn-word-generate" class="btn-primary">Genera al cursore</button>
+            <button id="btn-word-ask-doc" class="btn-secondary" title="Invia l'intero documento al modello per rispondere">Chiedi su tutto il file</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== EXCEL PANEL ==================== -->
+      <section id="panel-excel" class="host-panel hidden">
+        <div class="panel-section">
+          <h3>📐 Generatore di Formule</h3>
+          <p class="section-desc">Descrivi in italiano cosa vuoi calcolare o estrarre:</p>
+          <textarea id="excel-formula-prompt" class="prompt-box" rows="2" placeholder="Es: 'Cerca il valore di A2 nella colonna G e dammi il prezzo corrispondente in colonna H'"></textarea>
+          <button id="btn-excel-gen-formula" class="btn-primary full-width">Genera Formula Excel</button>
+        </div>
+
+        <div class="panel-section">
+          <h3>📊 Analizza Celle Selezionate</h3>
+          <p class="section-desc">Seleziona un intervallo di dati nel foglio e premi analizza:</p>
+          <button id="btn-excel-analyze-range" class="btn-action full-width">
+            <span class="icon">📈</span>
+            <span>Leggi & Analizza Intervallo Selezionato</span>
+          </button>
+        </div>
+
+        <div class="panel-section">
+          <h3>📋 Genera Dati di Esempio</h3>
+          <input type="text" id="excel-data-prompt" class="input-text" placeholder="Es: 'Tabella con 5 prodotti, categorie e prezzi'" />
+          <button id="btn-excel-gen-table" class="btn-secondary full-width">Inserisci Dati nel Foglio</button>
+        </div>
+      </section>
+
+      <!-- ==================== OUTLOOK PANEL ==================== -->
+      <section id="panel-outlook" class="host-panel hidden">
+        <div class="panel-section">
+          <h3>✉️ Email Corrente</h3>
+          <div id="outlook-email-meta" class="email-meta-box">
+            <div id="email-sender"><strong>Da:</strong> <span class="placeholder-text">Nessuna email aperta</span></div>
+            <div id="email-subject"><strong>Oggetto:</strong> <span class="placeholder-text">-</span></div>
+          </div>
+          <button id="btn-outlook-read" class="btn-secondary full-width">Ricarica Dati Email</button>
+        </div>
+
+        <div class="panel-section">
+          <h3>⚡ Risposte Rapide Intelligenti</h3>
+          <div class="action-grid">
+            <button class="btn-action btn-quick-reply" data-intent="Ringrazia e conferma l'accettazione con entusiasmo">
+              <span>✅ Conferma & Ringrazia</span>
+            </button>
+            <button class="btn-action btn-quick-reply" data-intent="Rifiuta gentilmente ringraziando per l'opportunità ma indicando indisponibilità">
+              <span>❌ Declina Gentilmente</span>
+            </button>
+            <button class="btn-action btn-quick-reply" data-intent="Chiedi maggiori dettagli, chiarimenti tecnici e tempistiche stimate">
+              <span>❓ Chiedi Chiarimenti</span>
+            </button>
+            <button id="btn-outlook-summarize" class="btn-action">
+              <span>📑 Punti Chiave & Scadenze</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>✍️ Risposta Personalizzata</h3>
+          <textarea id="outlook-custom-reply" class="prompt-box" rows="2" placeholder="Istruzioni: 'Rispondi che sono in ferie fino a martedì ma posso sentirli mercoledì pomeriggio...'"></textarea>
+          <button id="btn-outlook-gen-custom" class="btn-primary full-width">Scrivi Bozza</button>
+        </div>
+      </section>
+
+      <!-- ==================== RESULT / OUTPUT CARD ==================== -->
+      <section id="result-container" class="result-card hidden">
+        <div class="result-header">
+          <span class="result-title" id="result-model-badge">Risultato AI</span>
+          <button id="btn-close-result" class="btn-icon">✖</button>
+        </div>
+        <div id="result-content" class="result-body"></div>
+        <div class="result-actions">
+          <button id="btn-apply-replace" class="btn-success">Sostituisci nel documento</button>
+          <button id="btn-apply-insert" class="btn-secondary">Inserisci al cursore</button>
+          <button id="btn-copy-result" class="btn-outline">Copia testo</button>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <span>Personal AI Assistant • chiamate dirette ai provider, nessun server locale</span>
+    </footer>
+  </div>
+
+  <script src="ai.js"></script>
+  <script src="taskpane.js"></script>
+</body>
+</html>

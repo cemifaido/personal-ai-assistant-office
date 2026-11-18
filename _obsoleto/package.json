@@ -1,0 +1,11 @@
+{
+  "name": "gemini-office-plugin",
+  "version": "1.0.0",
+  "description": "Prototipo Add-in per Word, Excel e Outlook con Google Gemini",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {},
+  "private": true
+}
