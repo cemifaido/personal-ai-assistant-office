@@ -11,8 +11,8 @@
 param(
   [string]$Versione = '0.1.0',
   # Unico punto con gli indirizzi del progetto (sito GitHub Pages e repository).
-  [string]$BaseUrl = 'https://cemifaido.github.io/personal-ai-assistant-office',
-  [string]$RepoUrl = 'https://github.com/cemifaido/personal-ai-assistant-office'
+  [string]$BaseUrl = 'https://pai-office-automation.github.io/personal-ai-assistant-office',
+  [string]$RepoUrl = 'https://github.com/pai-office-automation/personal-ai-assistant-office'
 )
 
 $ErrorActionPreference = 'Stop'

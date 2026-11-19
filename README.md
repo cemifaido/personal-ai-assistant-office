@@ -12,7 +12,7 @@ I testi vanno **direttamente** dal tuo PC al provider scelto: non c'è un server
 
 ## Installazione
 
-Segui la **[guida illustrata](https://cemifaido.github.io/personal-ai-assistant-office/installa.html)**. In breve:
+Segui la **[guida illustrata](https://pai-office-automation.github.io/personal-ai-assistant-office/installa.html)**. In breve:
 
 1. Scarica `PersonalAIAssistant-<versione>-Setup.exe` dalla pagina [Releases](../../releases/latest).
 2. L'installatore non è ancora firmato: clic destro sul file → *Proprietà* → **Annulla blocco**; se compare *«Windows ha protetto il PC»* → *Ulteriori informazioni* → **Esegui comunque**.
@@ -33,7 +33,7 @@ Il valore deve coincidere con quello pubblicato nella Release.
 
 ## Privacy
 
-Leggi l'**[informativa](https://cemifaido.github.io/personal-ai-assistant-office/privacy.html)**. Punti essenziali:
+Leggi l'**[informativa](https://pai-office-automation.github.io/personal-ai-assistant-office/privacy.html)**. Punti essenziali:
 
 - i testi selezionati, i documenti (solo se lo chiedi) e le email selezionate vengono inviati al provider scelto, secondo le **sue** condizioni: alcuni piani gratuiti possono usare i dati per migliorare i servizi, verificale prima di elaborare documenti riservati;
 - nessuna telemetria, nessuna email inviata in automatico (Outlook apre sempre una bozza).
