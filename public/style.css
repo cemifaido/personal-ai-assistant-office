@@ -755,3 +755,7 @@ input:focus-visible,
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .typing-cursor { display: none; }
 }
+
+/* Riquadro chiavi comprimibile: pulsante chiudi nell'intestazione */
+.settings-header { position: relative; padding-right: 36px; }
+.settings-close { position: absolute; top: -4px; right: -6px; }

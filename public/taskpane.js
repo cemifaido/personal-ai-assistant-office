@@ -46,8 +46,7 @@ Office.onReady((info) => {
 function showOnboardingIfNeeded() {
   const hasAnyKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
   if (hasAnyKey) return;
-  document.getElementById('settings-card').classList.remove('hidden');
-  document.getElementById('btn-toggle-settings').setAttribute('aria-expanded', 'true');
+  setSettingsOpen(true);
   notify('Benvenuto! Personal AI Assistant funziona solo con una TUA chiave API personale, non inclusa: ' +
     'è legata al tuo account e al tuo contratto con il provider. Senza chiave non può elaborare nulla.\n' +
     'La più semplice: Google Gemini → "Ottieni chiave", crea la chiave, copiala qui sotto e premi "Salva chiavi".', 'info');
@@ -179,6 +178,12 @@ function notify(msg, type = 'info') {
   box.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
 }
 
+/** Apre o chiude il riquadro delle chiavi (ingranaggio, pulsante chiudi, dopo il salvataggio). */
+function setSettingsOpen(open) {
+  document.getElementById('settings-card').classList.toggle('hidden', !open);
+  document.getElementById('btn-toggle-settings').setAttribute('aria-expanded', String(open));
+}
+
 /** Messaggio breve per i lettori di schermo. */
 function announce(text) {
   const el = document.getElementById('sr-status');
@@ -208,9 +213,7 @@ function initEventListeners() {
   });
 
   document.getElementById('btn-toggle-settings').addEventListener('click', () => {
-    const card = document.getElementById('settings-card');
-    card.classList.toggle('hidden');
-    document.getElementById('btn-toggle-settings').setAttribute('aria-expanded', String(!card.classList.contains('hidden')));
+    setSettingsOpen(document.getElementById('settings-card').classList.contains('hidden'));
   });
 
   document.getElementById('btn-save-all-keys').addEventListener('click', () => {
@@ -218,10 +221,17 @@ function initEventListeners() {
       aiSetKey(p, document.getElementById(id).value.trim());
     }
     updateKeyBadges();
-    notify('Chiavi salvate in questo pannello.', 'success');
+    const hasKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
+    notify(hasKey ? "Chiavi salvate in questo pannello. Per modificarle usa l'ingranaggio in alto."
+                  : 'Nessuna chiave salvata: senza una chiave il pannello non può elaborare nulla.', hasKey ? 'success' : 'warn');
+    if (hasKey) setSettingsOpen(false);
     selectModelWithKey();
   });
   document.getElementById('btn-verify-keys').addEventListener('click', verifyKeys);
+  document.getElementById('btn-close-settings').addEventListener('click', () => {
+    setSettingsOpen(false);
+    document.getElementById('btn-toggle-settings').focus();
+  });
 
   document.getElementById('notice-close').addEventListener('click', () => {
     document.getElementById('notice').classList.add('hidden');
@@ -694,7 +704,8 @@ const CHART_TYPES = {
   colonne: 'ColumnClustered', barre: 'BarClustered', linee: 'Line', torta: 'Pie',
   anello: 'Doughnut', area: 'Area', dispersione: 'XYScatter'
 };
-const CHART_MODES = ['intervalli', 'conteggio', 'somma', 'media'];
+const CHART_MODES = ['intervalli', 'conteggio', 'somma', 'media', 'istogramma'];
+const CHART_MAX_BINS = 50;
 const CHART_DATA_SHEET = 'Dati grafici PAI';
 const CHART_MAX_POINTS = 2000;
 const CHART_MAX_GROUPS = 20; // oltre, le categorie minori finiscono in "Altri"
@@ -726,9 +737,11 @@ async function handleExcelChart() {
 Rispondi SOLO con un oggetto JSON valido, senza altro testo, con questi campi:
 {"tipo": uno tra ${Object.keys(CHART_TYPES).map(t => `"${t}"`).join(', ')},
  "titolo": "titolo breve",
- "modo": "intervalli" se i valori da disegnare sono già nelle celle; "conteggio" per contare quante righe ci sono per ogni categoria; "somma" o "media" per aggregare una colonna numerica per categoria,
+ "modo": "intervalli" se i valori da disegnare sono già nelle celle; "conteggio" per contare quante righe ci sono per ogni categoria (testo); "somma" o "media" per aggregare una colonna numerica per categoria; "istogramma" per raggruppare UNA colonna numerica in fasce (es. punteggi 0-4, 5-9...) e contare quante righe cadono in ogni fascia,
  "categorie": intervallo della colonna delle etichette SENZA intestazione (es. "A2:A41"), oppure "" se non servono,
- "valori": elenco di intervalli numerici SENZA intestazione (es. ["F2:F41"]); per "conteggio" usa [],
+ "valori": elenco di intervalli numerici SENZA intestazione (es. ["F2:F41"]); per "conteggio" usa []; per "istogramma" una sola colonna,
+ "ampiezza": solo per "istogramma", larghezza di ogni fascia (numero, es. 5); se l'utente non la indica, ometti il campo,
+ "inizio": solo per "istogramma", valore da cui parte la prima fascia (es. 0); facoltativo,
  "nomiSerie": elenco dei nomi delle serie, uno per ogni intervallo di "valori" (per conteggio/somma/media un solo nome),
  "spiegazione": "una frase su cosa mostra il grafico"}
 Regole: ogni intervallo è UNA sola colonna, con le stesse righe delle categorie; usa le colonne reali del contesto e i dati della selezione se pertinenti; "torta" e "anello" con una sola serie.`,
@@ -755,12 +768,22 @@ function parseChartSpec(text) {
   if (categorie && !rangeRe.test(categorie)) throw new Error(`Intervallo categorie non valido: ${categorie}`);
   for (const v of valori) if (!rangeRe.test(v)) throw new Error(`Intervallo valori non valido: ${v}`);
   if (modo === 'intervalli' && valori.length === 0) throw new Error('La proposta non indica i valori da disegnare.');
-  if (modo !== 'intervalli' && !categorie) throw new Error('Per contare o aggregare serve la colonna delle categorie.');
+  if (modo === 'istogramma') {
+    if (valori.length !== 1) throw new Error('Per un istogramma serve una sola colonna di numeri: indica quale (es. "istogramma del punteggio finale").');
+  } else if (modo !== 'intervalli' && !categorie) {
+    throw new Error('Per contare o aggregare per categoria serve una colonna di etichette (es. i luoghi di nascita). ' +
+                    'Se vuoi raggruppare dei numeri in fasce, chiedi un istogramma (es. "istogramma del punteggio finale a fasce di 5").');
+  }
+  const ampiezza = Number(s.ampiezza);
+  const inizio = Number(s.inizio);
   if ((modo === 'somma' || modo === 'media') && valori.length !== 1) throw new Error('Per somma o media serve una sola colonna di valori.');
   if ((tipo === 'torta' || tipo === 'anello') && valori.length > 1) throw new Error('Torta e anello ammettono una sola serie.');
   const nomi = Array.isArray(s.nomiSerie) ? s.nomiSerie.map(String) : [];
   return {
-    tipo, modo, categorie, valori: modo === 'conteggio' ? [] : valori,
+    tipo: modo === 'istogramma' && (tipo === 'torta' || tipo === 'anello' || tipo === 'dispersione') ? 'colonne' : tipo,
+    modo, categorie: modo === 'istogramma' ? '' : categorie, valori: modo === 'conteggio' ? [] : valori,
+    ampiezza: modo === 'istogramma' && ampiezza > 0 ? ampiezza : null,
+    inizio: modo === 'istogramma' && Number.isFinite(inizio) && s.inizio !== undefined && s.inizio !== '' ? inizio : null,
     titolo: String(s.titolo || '').slice(0, 120),
     nomiSerie: nomi,
     spiegazione: String(s.spiegazione || '')
@@ -769,13 +792,46 @@ function parseChartSpec(text) {
 
 function describeChartSpec(s) {
   const modi = { intervalli: 'valori presi dalle celle', conteggio: 'conteggio delle righe per categoria',
-                 somma: 'somma per categoria', media: 'media per categoria' };
+                 somma: 'somma per categoria', media: 'media per categoria',
+                 istogramma: `conteggio per fasce${s.ampiezza ? ` di ampiezza ${s.ampiezza}` : ' (ampiezza automatica)'}` };
   return `Grafico proposto: ${s.tipo} — "${s.titolo}"\n` +
     `Dati: ${modi[s.modo]}` + (s.categorie ? `, categorie ${s.categorie}` : '') +
     (s.valori.length ? `, valori ${s.valori.join(', ')}` : '') + '\n' +
     (s.modo !== 'intervalli' ? `I numeri vengono calcolati dal pannello e scritti nel foglio "${CHART_DATA_SHEET}".\n` : '') +
     (s.spiegazione ? `\n${s.spiegazione}\n` : '') +
     '\nPremi "Inserisci" per creare il grafico.';
+}
+
+/**
+ * Istogramma esatto: fasce di ampiezza fissa (scelta dal modello o automatica), fasce vuote incluse.
+ * Numeri interi: fasce chiuse "0–4", "5–9"; decimali: fasce "da a fino a <b".
+ */
+function buildHistogram(values, width, start) {
+  const nums = values.filter(v => typeof v === 'number' && Number.isFinite(v));
+  if (!nums.length) throw new Error("La colonna scelta per l'istogramma non contiene numeri.");
+  const min = Math.min(...nums), max = Math.max(...nums);
+  if (!(width > 0)) {
+    // ampiezza automatica: circa radice(n) fasce, arrotondata a un numero "comodo"
+    const raw = (max - min || 1) / Math.max(1, Math.ceil(Math.sqrt(nums.length)));
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    width = [1, 2, 5, 10].map(m => m * pow).find(c => c >= raw) || 10 * pow;
+  }
+  if (!Number.isFinite(start)) start = Math.floor(min / width) * width;
+  start = Math.min(start, min);
+  const bins = Math.floor((max - start) / width) + 1;
+  if (bins > CHART_MAX_BINS) throw new Error(`Con questa ampiezza servirebbero ${bins} fasce: chiedi fasce più larghe.`);
+  const integers = nums.every(Number.isInteger) && Number.isInteger(width) && Number.isInteger(start);
+  const counts = new Array(bins).fill(0);
+  nums.forEach(v => { counts[Math.min(bins - 1, Math.floor((v - start) / width))]++; });
+  const fmt = (x) => Number.isInteger(x) ? String(x) : x.toFixed(2).replace(/\.?0+$/, '');
+  const rows = counts.map((c, i) => {
+    const a = start + i * width;
+    const label = integers ? `${fmt(a)}–${fmt(a + width - 1)}` : `${fmt(a)}–<${fmt(a + width)}`;
+    return [label, c];
+  });
+  // Le fasce vuote prima del primo dato non aggiungono informazione: si saltano.
+  const first = rows.findIndex(r => r[1] > 0);
+  return rows.slice(first);
 }
 
 async function insertChart(spec) {
@@ -800,6 +856,10 @@ async function insertChart(spec) {
     let note = '';
     if (spec.modo !== 'intervalli') {
       // Aggregazione esatta fatta qui, non dal modello.
+      let table;
+      if (spec.modo === 'istogramma') {
+        table = buildHistogram(valRanges[0].values.map(r => r[0]), spec.ampiezza, spec.inizio);
+      } else {
       const groups = new Map();
       catRange.values.forEach((r, i) => {
         const k = String(r[0] ?? '').trim() || '(vuoto)';
@@ -808,12 +868,13 @@ async function insertChart(spec) {
         const g = groups.get(k) || { sum: 0, n: 0 };
         g.sum += v; g.n += 1; groups.set(k, g);
       });
-      let table = [...groups.entries()].map(([k, g]) => [k, spec.modo === 'media' ? g.sum / g.n : g.sum]);
+      table = [...groups.entries()].map(([k, g]) => [k, spec.modo === 'media' ? g.sum / g.n : g.sum]);
       table.sort((a, b) => b[1] - a[1]);
       if (table.length > CHART_MAX_GROUPS && spec.modo !== 'media') {
         const rest = table.slice(CHART_MAX_GROUPS - 1).reduce((s, r) => s + r[1], 0);
         table = table.slice(0, CHART_MAX_GROUPS - 1).concat([['Altri', rest]]);
         note = ` Le categorie oltre le prime ${CHART_MAX_GROUPS - 1} sono raggruppate in "Altri".`;
+      }
       }
       if (!table.length) throw new Error('Nessun dato numerico da aggregare.');
 
@@ -832,7 +893,7 @@ async function insertChart(spec) {
           start = dUsed.rowIndex + dUsed.rowCount + 1;
         }
       }
-      const label = spec.nomiSerie[0] || (spec.modo === 'conteggio' ? 'Conteggio' : spec.modo === 'somma' ? 'Somma' : 'Media');
+      const label = spec.nomiSerie[0] || (spec.modo === 'conteggio' || spec.modo === 'istogramma' ? 'Conteggio' : spec.modo === 'somma' ? 'Somma' : 'Media');
       dataSheet.getRangeByIndexes(start, 0, 1, 2).values = [[spec.titolo || 'Grafico', label]];
       dataSheet.getRangeByIndexes(start + 1, 0, table.length, 2).values = table;
       catRange = dataSheet.getRangeByIndexes(start + 1, 0, table.length, 1);
