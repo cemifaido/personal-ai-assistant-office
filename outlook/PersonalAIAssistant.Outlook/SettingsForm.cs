@@ -62,14 +62,14 @@ namespace PersonalAIAssistant
             urlBox.Location = new Point(120, y); urlBox.Size = new Size(330, 24);
             urlReset.Location = new Point(458, y + 4);
             Controls.Add(urlBox); Controls.Add(urlReset); y += 26;
-            Controls.Add(new Label { Text = "Provider su Internet: cambialo solo se il provider lo ha cambiato. Locale: Ollama :11434/v1, llama-server :8080/v1, LM Studio :1234/v1, anche su un PC della rete.",
+            Controls.Add(new Label { Text = "Provider su Internet: cambialo solo se il provider lo ha cambiato. Locale: Ollama :11434/v1, llama-server :8080/v1, LM Studio :1234/v1, oppure l'IP di un PC della rete.",
                                      Location = new Point(120, y), Size = new Size(406, 16), ForeColor = Color.DimGray }); y += 26;
 
             Controls.Add(new Label { Text = "Chiave API:", Location = new Point(14, y + 4), AutoSize = true });
             keyBox.Location = new Point(120, y); keyBox.Size = new Size(320, 24);
             keyLink.Location = new Point(448, y + 4);
             Controls.Add(keyBox); Controls.Add(keyLink); y += 28;
-            Controls.Add(new Label { Text = "Le chiavi sono cifrate per il tuo utente Windows e inviate solo al provider a cui appartengono.",
+            Controls.Add(new Label { Text = "Cifrate per il tuo utente Windows; inviate solo all'indirizzo API di quel provider (se lo cambi, ti chiedo conferma).",
                                      Location = new Point(120, y), Size = new Size(406, 16), ForeColor = Color.DimGray }); y += 24;
 
             keysSummary.Location = new Point(14, y); keysSummary.Size = new Size(512, 34); Controls.Add(keysSummary); y += 36;
@@ -115,6 +115,15 @@ namespace PersonalAIAssistant
                         var key = (keyDraft[p] ?? "").Trim();
                         if (key.Length == 0 && !(p == ModelCatalog.Local && SelectedProvider == p)) continue;
                         var name = ModelCatalog.ProviderNames[p];
+                        // Si verifica solo cio' che e' gia' salvato (e quindi confermato): nessun invio prima delle conferme.
+                        bool compat = ModelCatalog.IsCompatible(p);
+                        if (key != settings.GetKey(p) ||
+                            (compat && ModelCatalog.NormalizeBaseUrl(urlDraft[p], p) != settings.BaseUrlFor(p)) ||
+                            !settings.IsDestinationApproved(p))
+                        {
+                            lines.Add(name + ": modifiche non ancora salvate - premi Salva (con le eventuali conferme), poi Verifica.");
+                            continue;
+                        }
                         try
                         {
                             var ids = await AiClient.ListModelsAsync(p, key, cts.Token, ModelCatalog.IsCompatible(p) ? urlDraft[p] : null);
@@ -196,6 +205,27 @@ namespace PersonalAIAssistant
                 }
             }
 
+            // Indirizzo non ufficiale con una chiave: conferma esplicita del server destinatario, legata a server + chiave.
+            var approvals = new Dictionary<string, string>(settings.KeyApprovals);
+            foreach (var p in ModelCatalog.CompatBaseUrls.Keys)
+            {
+                var key = (keyDraft[p] ?? "").Trim();
+                var url = ModelCatalog.NormalizeBaseUrl(urlDraft[p], p);
+                if (AppSettings.DestinationApproved(p, url, key, approvals)) continue;
+                var origin = AppSettings.OriginOf(url);
+                var msg = "La chiave di " + ModelCatalog.ProviderNames[p] + " verra' inviata a:\n\n    " + origin + "\n\n" +
+                          "invece che all'indirizzo ufficiale (" + AppSettings.OriginOf(ModelCatalog.CompatBaseUrls[p]) + "). " +
+                          "Chi gestisce quel server ricevera' la chiave e i testi delle email che elabori.\n\n" +
+                          "Confermi solo se ti fidi di questo server. Continuare?";
+                if (MessageBox.Show(this, msg, "Indirizzo API non ufficiale", MessageBoxButtons.YesNo, MessageBoxIcon.Warning,
+                                    MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                {
+                    status.Text = "Impostazioni non salvate: usa \"Predefinito\" per tornare all'indirizzo ufficiale.";
+                    return;
+                }
+                approvals[p] = AppSettings.ApprovalToken(origin, key);
+            }
+
             // Chiavi nuove o cambiate di provider con sede in Cina: conferma esplicita.
             var china = ModelCatalog.ChinaProviders.Keys
                 .Where(p => (keyDraft[p] ?? "").Trim().Length > 0 && (keyDraft[p] ?? "").Trim() != settings.GetKey(p)).ToList();
@@ -223,6 +253,16 @@ namespace PersonalAIAssistant
                     var u = ModelCatalog.NormalizeBaseUrl(urlDraft[p], p);
                     if (u == ModelCatalog.CompatBaseUrls[p]) settings.BaseUrls.Remove(p); else settings.BaseUrls[p] = u;
                 }
+            }
+            // Restano solo i consensi ancora validi per server + chiave salvati.
+            settings.KeyApprovals.Clear();
+            foreach (var p in ModelCatalog.CompatBaseUrls.Keys)
+            {
+                string t;
+                var origin = AppSettings.OriginOf(settings.BaseUrlFor(p));
+                if (approvals.TryGetValue(p, out t) && t == AppSettings.ApprovalToken(origin, settings.GetKey(p)) &&
+                    origin != AppSettings.OriginOf(ModelCatalog.CompatBaseUrls[p]))
+                    settings.KeyApprovals[p] = t;
             }
             settings.Provider = SelectedProvider;
             if (settings.Provider != ModelCatalog.Local && settings.GetKey(settings.Provider).Length == 0)

@@ -182,6 +182,14 @@ namespace PersonalAIAssistant
             }
             var provider = settings.Provider;
             var model = settings.ModelFor(provider);
+            // La chiave parte verso un indirizzo non ufficiale solo se l'utente lo ha confermato per QUESTA chiave.
+            if (!settings.IsDestinationApproved(provider))
+            {
+                MessageBox.Show("L'indirizzo API di " + ModelCatalog.ProviderNames[provider] + " (" + AppSettings.OriginOf(settings.BaseUrlFor(provider)) +
+                                ") non e' quello ufficiale e non e' stato confermato per la chiave salvata. Apri Personal AI > Impostazioni, " +
+                                "controlla l'indirizzo e premi Salva per confermarlo (o usa \"Predefinito\").", Title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return null;
+            }
 
             busy = true;
             using (var cts = new CancellationTokenSource())

@@ -39,6 +39,43 @@ namespace PersonalAIAssistant
             return ModelCatalog.DefaultFor(provider).Id;
         }
 
+        /// <summary>
+        /// Consensi a inviare la chiave di un provider a un indirizzo diverso da quello ufficiale:
+        /// provider -> "origine|impronta della chiave". Cambiando server o chiave il consenso non vale piu'.
+        /// </summary>
+        public Dictionary<string, string> KeyApprovals = new Dictionary<string, string>();
+
+        public static string OriginOf(string url)
+        {
+            Uri u;
+            return Uri.TryCreate(url ?? "", UriKind.Absolute, out u) ? u.GetLeftPart(UriPartial.Authority).ToLowerInvariant() : "";
+        }
+
+        public static string ApprovalToken(string origin, string key)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var h = sha.ComputeHash(Encoding.UTF8.GetBytes((key ?? "").Trim()));
+                return origin + "|" + BitConverter.ToString(h, 0, 12).Replace("-", "");
+            }
+        }
+
+        /// <summary>true se l'indirizzo e' quello ufficiale, il modello locale, o un indirizzo confermato per questa chiave.</summary>
+        public static bool DestinationApproved(string provider, string url, string key, IDictionary<string, string> approvals)
+        {
+            if (!ModelCatalog.IsCompatible(provider) || provider == ModelCatalog.Local) return true;
+            var origin = OriginOf(url);
+            if (origin == OriginOf(ModelCatalog.CompatBaseUrls[provider])) return true;
+            if (string.IsNullOrWhiteSpace(key)) return true;   // nessuna chiave da proteggere
+            string token;
+            return approvals.TryGetValue(provider, out token) && token == ApprovalToken(origin, key);
+        }
+
+        public bool IsDestinationApproved(string provider)
+        {
+            return DestinationApproved(provider, BaseUrlFor(provider), GetKey(provider), KeyApprovals);
+        }
+
         /// <summary>Indirizzo da usare per un provider compatibile: quello salvato (se valido) o il predefinito.</summary>
         public string BaseUrlFor(string provider)
         {
@@ -93,6 +130,8 @@ namespace PersonalAIAssistant
                     if (data.TryGetValue("urls", out v) && v is Dictionary<string, object>)
                         foreach (var kv in (Dictionary<string, object>)v)
                             if (ModelCatalog.IsCompatible(kv.Key)) s.BaseUrls[kv.Key] = Convert.ToString(kv.Value);
+                    if (data.TryGetValue("keyApprovals", out v) && v is Dictionary<string, object>)
+                        foreach (var kv in (Dictionary<string, object>)v) s.KeyApprovals[kv.Key] = Convert.ToString(kv.Value);
                     if (data.TryGetValue("keys", out v) && v is Dictionary<string, object>)
                         foreach (var kv in (Dictionary<string, object>)v) s.protectedKeys[kv.Key] = Convert.ToString(kv.Value);
                 }
@@ -117,6 +156,7 @@ namespace PersonalAIAssistant
                 { "provider", Provider },
                 { "models", Models },
                 { "urls", BaseUrls },
+                { "keyApprovals", KeyApprovals },
                 { "keys", protectedKeys },
             };
             var tmp = FilePath + ".tmp";

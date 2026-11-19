@@ -45,7 +45,9 @@ namespace PersonalAIAssistant
         private static HttpClient CreateHttp()
         {
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
-            return new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+            // Nessun reindirizzamento automatico: la destinazione resta quella validata (es. un server locale
+            // non puo' rimandare la richiesta, con chiave e testo, verso un indirizzo esterno).
+            return new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(120) };
         }
 
         public static async Task<AiResult> CallAsync(string provider, string model, string apiKey,
@@ -286,7 +288,11 @@ namespace PersonalAIAssistant
                 var text = await resp.Content.ReadAsStringAsync();
                 Dictionary<string, object> data = null;
                 try { data = json.Deserialize<Dictionary<string, object>>(text); } catch { }
-                if (!resp.IsSuccessStatusCode) throw Classify(provider, (int)resp.StatusCode, data);
+                int code = (int)resp.StatusCode;
+                if (code >= 300 && code < 400)
+                    throw new AiException(ModelCatalog.ProviderNames[provider] + " ha risposto con un reindirizzamento (" + code + "): per sicurezza " +
+                                          "la richiesta non e' stata inoltrata altrove. Controlla l'indirizzo API nelle Impostazioni.", code);
+                if (!resp.IsSuccessStatusCode) throw Classify(provider, code, data);
                 if (data == null) throw new AiException("Risposta non valida da " + ModelCatalog.ProviderNames[provider] + ".");
                 return data;
             }

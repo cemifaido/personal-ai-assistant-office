@@ -86,7 +86,7 @@ namespace PersonalAIAssistant
             new Model { Provider = "locale", Id = "qwen3:8b", Label = "qwen3:8b (esempio: scrivi il nome del tuo modello)" },
         };
 
-        /// <summary>Questo PC, indirizzo privato (10/8, 172.16/12, 192.168/16, IPv6 fc00::/7 e fe80::/10) o nome senza dominio.</summary>
+        /// <summary>Questo PC o indirizzo IP privato letterale (10/8, 172.16/12, 192.168/16, IPv6 fc00::/7 e fe80::/10).</summary>
         public static bool IsInternalHost(Uri u)
         {
             if (u.IsLoopback) return true;
@@ -98,7 +98,7 @@ namespace PersonalAIAssistant
                     return b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] <= 31) || (b[0] == 192 && b[1] == 168);
                 return (b[0] & 0xFE) == 0xFC || (b[0] == 0xFE && (b[1] & 0xC0) == 0x80);
             }
-            return u.HostNameType == UriHostNameType.Dns && u.Host.IndexOf('.') < 0;   // es. http://server-ai:11434
+            return false;   // i nomi (anche senza dominio) si risolvono via DNS e possono puntare a Internet
         }
 
         public static bool IsCompatible(string provider) { return CompatBaseUrls.ContainsKey(provider); }
@@ -122,7 +122,7 @@ namespace PersonalAIAssistant
 
         /// <summary>
         /// Provider su Internet: solo https. Modello locale: http o https, ma solo verso questo PC o la rete interna
-        /// (indirizzi privati IPv4/IPv6 o nome di computer senza dominio): le chiavi e i testi non escono dalla rete.
+        /// (localhost o indirizzo IP privato scritto per esteso: nessun nome risolto via DNS, che potrebbe puntare fuori).
         /// </summary>
         public static string NormalizeBaseUrl(string input, string provider)
         {

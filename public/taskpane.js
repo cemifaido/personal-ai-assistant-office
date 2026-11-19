@@ -149,6 +149,7 @@ async function openCustomModel(provider) {
   row.dataset.provider = provider;
   document.getElementById('custom-model-label').textContent = `ID del modello ${AI_PROVIDER_NAMES[provider]}`;
   input.value = '';
+  input.placeholder = 'es. ' + (AI_CATALOG.find(m => m.provider === provider)?.id || 'nome-del-modello');
   list.innerHTML = '';
   row.classList.remove('hidden');
   input.focus();
@@ -341,7 +342,11 @@ function initEventListeners() {
 
   // Chiavi nuove di provider con sede in Cina: prima si chiede conferma esplicita.
   document.getElementById('btn-save-all-keys').addEventListener('click', () => {
-    const china = Object.keys(AI_CHINA_PROVIDERS).filter(p => document.getElementById(KEY_INPUTS[p]).value.trim());
+    // Solo chiavi nuove o cambiate: risalvare le impostazioni non ripropone la conferma gia' data.
+    const china = Object.keys(AI_CHINA_PROVIDERS).filter(p => {
+      const v = document.getElementById(KEY_INPUTS[p]).value.trim();
+      return v && v !== aiGetKey(p).trim();
+    });
     if (!china.length) { saveAllKeys(); return; }
     document.getElementById('china-confirm-text').textContent =
       `Con ${china.map(p => AI_PROVIDER_NAMES[p]).join(', ')} i testi, i documenti e le email che elabori verranno inviati ` +
