@@ -231,8 +231,64 @@ begin
            'Dettagli: C:\ProgramData\PersonalAIAssistant\condivisione.log', mbError, MB_OK);
 end;
 
+{ ---------- cache di Office: solo le voci di QUESTO add-in ---------- }
+
+procedure DeleteMatching(Dir, Pattern: String);
+var
+  F: TFindRec;
+begin
+  if FindFirst(Dir + Pattern, F) then
+  try
+    repeat
+      if (F.Name <> '.') and (F.Name <> '..') then
+      begin
+        if (F.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
+          DelTree(Dir + F.Name, True, True, True)
+        else
+          DeleteFile(Dir + F.Name);
+        Log('Cache rimossa: ' + Dir + F.Name);
+      end;
+    until not FindNext(F);
+  finally
+    FindClose(F);
+  end;
+end;
+
+{ Office conserva copie del manifest (anche di versioni precedenti, che considera piu' recenti)
+  in Wef\<archivio>\<provider>\Manifests e la configurazione della scheda in AppCommands.
+  Si rimuovono solo i file con l'Id di questo add-in: gli altri add-in non vengono toccati. }
+procedure DeleteAddinCache();
+var
+  Wef: String;
+  A, B: TFindRec;
+begin
+  Wef := ExpandConstant('{localappdata}\Microsoft\Office\16.0\Wef\');
+  if FindFirst(Wef + '*', A) then
+  try
+    repeat
+      if ((A.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) and (A.Name <> '.') and (A.Name <> '..') then
+        if FindFirst(Wef + A.Name + '\*', B) then
+        try
+          repeat
+            if ((B.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) and (B.Name <> '.') and (B.Name <> '..') then
+              DeleteMatching(Wef + A.Name + '\' + B.Name + '\Manifests\', '{#AddinId}_*');
+          until not FindNext(B);
+        finally
+          FindClose(B);
+        end;
+    until not FindNext(A);
+  finally
+    FindClose(A);
+  end;
+  DeleteMatching(Wef + 'AppCommands\11.0\TrustedCatalog\', '{#AddinId}*');
+  DeleteMatching(Wef + 'AddinInfo\1\filesystem\Word\1\', '{#AddinId}_*');
+  DeleteMatching(Wef + 'AddinInfo\1\filesystem\Excel\1\', '{#AddinId}_*');
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if CurStep = ssInstall then
+    DeleteAddinCache();
   if (CurStep = ssPostInstall) and WizardIsTaskSelected('wordexcel') then
     EnsureShare();
 end;
@@ -246,4 +302,6 @@ begin
               'Rispondi No se altri utenti di questo PC usano Personal AI Assistant.' + #13#10 +
               'Serve una conferma da amministratore.', mbConfirmation, MB_YESNO) = IDYES then
       RunShareScript('Rimuovi', True, RC);
+  if CurUninstallStep = usPostUninstall then
+    DeleteAddinCache();
 end;
