@@ -759,3 +759,7 @@ input:focus-visible,
 /* Riquadro chiavi comprimibile: pulsante chiudi nell'intestazione */
 .settings-header { position: relative; padding-right: 36px; }
 .settings-close { position: absolute; top: -4px; right: -6px; }
+
+/* Opzione: chiavi solo per la sessione */
+.persist-option { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 11.5px; line-height: 1.45; color: var(--text-muted); cursor: pointer; }
+.persist-option input { margin-top: 2px; flex-shrink: 0; }

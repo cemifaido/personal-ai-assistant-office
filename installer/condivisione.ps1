@@ -5,6 +5,7 @@
   SYSTEM) e la condivide in SOLA LETTURA come \\localhost\PersonalAIAssistant$ (condivisione nascosta).
 
   -Azione Crea    -ManifestSource <file>   crea o aggiorna cartella, manifest e condivisione
+                  (oppure -ManifestGzB64 <manifest gzip+base64>, come fa l'installatore)
   -Azione Rimuovi                          rimuove condivisione e cartella (solo se sono nostre)
 
   Regole di sicurezza (lo script gira elevato):
@@ -17,7 +18,8 @@
 #>
 param(
   [ValidateSet('Crea', 'Rimuovi')][string]$Azione = 'Crea',
-  [string]$ManifestSource
+  [string]$ManifestSource,
+  [string]$ManifestGzB64   # manifest compresso e incorporato (usato dall'installatore: nessun file da leggere)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,7 +90,14 @@ try {
     exit 0
   }
 
-  if (-not $ManifestSource -or -not (Test-Path -LiteralPath $ManifestSource -PathType Leaf)) { exit 3 }
+  # Il manifest arriva incorporato nel comando (installatore) oppure da file (uso manuale).
+  if ($ManifestGzB64) {
+    $gz = New-Object IO.Compression.GZipStream((New-Object IO.MemoryStream(,[Convert]::FromBase64String($ManifestGzB64))), [IO.Compression.CompressionMode]::Decompress)
+    $ms = New-Object IO.MemoryStream; $gz.CopyTo($ms); $manifestBytes = $ms.ToArray()
+  } elseif ($ManifestSource -and (Test-Path -LiteralPath $ManifestSource -PathType Leaf)) {
+    $manifestBytes = [IO.File]::ReadAllBytes($ManifestSource)
+  } else { exit 3 }
+  try { [void][xml][Text.Encoding]::UTF8.GetString($manifestBytes) } catch { exit 3 }
   $existing = Get-OurShare
   if ($existing -eq 'altra') { exit 5 }
 
@@ -105,7 +114,7 @@ try {
   # 2) manifest ricreato (eredita i permessi della cartella; nessuna ACL esplicita preesistente)
   $target = Join-Path $dir 'manifest.xml'
   if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Force }
-  [IO.File]::WriteAllBytes($target, [IO.File]::ReadAllBytes($ManifestSource))
+  [IO.File]::WriteAllBytes($target, $manifestBytes)
 
   # 3) condivisione: solo lettura per Everyone, nient'altro
   $everyone = $sidEveryone.Translate([System.Security.Principal.NTAccount]).Value

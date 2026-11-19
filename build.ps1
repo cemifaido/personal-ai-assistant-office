@@ -70,6 +70,25 @@ $manVer = $check.OfficeApp.Version
 if (-not $manVer.StartsWith($Versione)) { throw "Versione manifest ($manVer) diversa da $Versione." }
 [IO.File]::WriteAllText("$build\manifest.xml", $manifest, (New-Object Text.UTF8Encoding $false))
 
+Step "Comandi elevati per la condivisione (script e manifest incorporati, nessun file da leggere)"
+# Lo script eseguito come amministratore non deve leggere file da cartelle scrivibili dall'utente:
+# codice e manifest (compresso) viaggiano dentro -EncodedCommand, generato qui e incorporato nel Setup.
+$shareScript = Get-Content (Join-Path $root 'installer\condivisione.ps1') -Raw
+$shareScript = [regex]::Replace($shareScript, '(?s)<#.*?#>', '')                 # commento di testa
+$shareScript = ($shareScript -split "`n" | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() }) -join "`n"
+$raw = [IO.File]::ReadAllBytes("$build\manifest.xml")
+$msOut = New-Object IO.MemoryStream
+$gzw = New-Object IO.Compression.GZipStream($msOut, [IO.Compression.CompressionMode]::Compress)
+$gzw.Write($raw, 0, $raw.Length); $gzw.Close()
+$manifestGz = [Convert]::ToBase64String($msOut.ToArray())
+foreach ($a in @(@('crea', "-Azione Crea -ManifestGzB64 '$manifestGz'"), @('rimuovi', '-Azione Rimuovi'))) {
+  $cmd = "& {`n$shareScript`n} $($a[1])"
+  $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
+  if ($enc.Length -gt 30000) { throw "Comando elevato troppo lungo ($($enc.Length) caratteri)." }
+  [IO.File]::WriteAllText("$build\enc-$($a[0]).txt", $enc, [Text.Encoding]::ASCII)
+  Write-Host "   $($a[0]): $($enc.Length) caratteri"
+}
+
 Step "Chiave pubblica per l'elenco di inclusione VSTO"
 $pub = $cert.PublicKey.Key.ToXmlString($false)
 [IO.File]::WriteAllText("$build\publickey.txt", $pub, [Text.Encoding]::ASCII)

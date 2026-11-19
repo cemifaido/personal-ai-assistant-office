@@ -130,17 +130,28 @@ function getSelectedModelInfo() {
 
 const KEY_INPUTS = { gemini: 'input-gemini-key', openai: 'input-openai-key', claude: 'input-claude-key' };
 
+/**
+ * I campi restano sempre vuoti: la chiave salvata non viene ricopiata nella pagina.
+ * Il segnaposto indica solo che esiste, con le ultime 4 cifre per riconoscerla.
+ */
 function loadSavedKeys() {
+  const PLACEHOLDERS = { gemini: 'AIzaSy...', openai: 'sk-proj-...', claude: 'sk-ant-...' };
   for (const [p, id] of Object.entries(KEY_INPUTS)) {
-    document.getElementById(id).value = aiGetKey(p);
+    const input = document.getElementById(id);
+    const key = aiGetKey(p);
+    input.value = '';
+    input.placeholder = key ? `Chiave ${aiKeyStorage(p)} (…${key.slice(-4)}): lascia vuoto per mantenerla` : PLACEHOLDERS[p];
   }
+  const persist = document.getElementById('chk-persist-keys');
+  if (persist) persist.checked = aiPersistKeys();
 }
 
 function updateKeyBadges() {
   for (const p of Object.keys(KEY_INPUTS)) {
     const el = document.getElementById(`badge-${p}-status`);
-    const has = Boolean(aiGetKey(p));
-    el.textContent = has ? 'Salvata' : 'Mancante';
+    const where = aiKeyStorage(p);
+    const has = Boolean(where);
+    el.textContent = where === 'salvata' ? 'Salvata' : where === 'sessione' ? 'Solo sessione' : 'Mancante';
     el.className = `key-badge ${has ? 'ready' : 'missing'}`;
   }
 }
@@ -207,7 +218,8 @@ function initEventListeners() {
     a.addEventListener('click', (e) => { e.preventDefault(); openExternal(a.dataset.keyLink); });
   });
   document.getElementById('btn-clear-keys').addEventListener('click', () => {
-    for (const [p, id] of Object.entries(KEY_INPUTS)) { aiSetKey(p, ''); document.getElementById(id).value = ''; }
+    for (const p of Object.keys(KEY_INPUTS)) aiSetKey(p, '');
+    loadSavedKeys();
     updateKeyBadges();
     notify('Chiavi cancellate da questo pannello. Se hai Personal AI anche in Word/Excel e Outlook, cancellale anche lì.', 'success');
   });
@@ -217,9 +229,13 @@ function initEventListeners() {
   });
 
   document.getElementById('btn-save-all-keys').addEventListener('click', () => {
+    // Si aggiornano solo i campi compilati: un campo vuoto mantiene la chiave gia' presente.
+    aiSetPersist(document.getElementById('chk-persist-keys').checked);
     for (const [p, id] of Object.entries(KEY_INPUTS)) {
-      aiSetKey(p, document.getElementById(id).value.trim());
+      const value = document.getElementById(id).value.trim();
+      if (value) aiSetKey(p, value);
     }
+    loadSavedKeys();
     updateKeyBadges();
     const hasKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
     notify(hasKey ? "Chiavi salvate in questo pannello. Per modificarle usa l'ingranaggio in alto."

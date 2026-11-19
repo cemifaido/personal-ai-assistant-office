@@ -4,7 +4,8 @@
 ; Architettura (verificata con lo spike su utente Windows standard):
 ;  - tutto per l'utente corrente, SENZA privilegi (PrivilegesRequired=lowest);
 ;  - Word/Excel: catalogo attendibile \\localhost\PersonalAIAssistant$ (condivisione in sola lettura
-;    creata da condivisione.ps1 con UNA elevazione, solo se non esiste gia');
+;    creata da condivisione.ps1 con UNA elevazione, solo se non esiste gia'; lo script e il manifest
+;    sono incorporati nel comando elevato, nessun file intermedio);
 ;  - Outlook classico: add-in VSTO in HKCU + elenco di inclusione VSTO (nessun avviso di fiducia).
 
 #ifndef AppVer
@@ -14,6 +15,8 @@
   #define BuildDir "..\build"
 #endif
 #define AddinId "ecb39046-2d14-45ba-b5ea-94524ea141db"
+#define EncCrea FileRead(FileOpen(BuildDir + '\enc-crea.txt'))
+#define EncRimuovi FileRead(FileOpen(BuildDir + '\enc-rimuovi.txt'))
 #define ShareUnc "\\localhost\PersonalAIAssistant$"
 #define CatalogId "{{0B7E4C2A-91D3-4F6E-8A25-6C1D9E3F7A40}"
 #define InclusionId "{{5D8A1F36-2C47-4B9E-A0E3-8F61B2D74C95}"
@@ -63,7 +66,6 @@ Name: "outlook"; Description: "Outlook classico per Windows (gruppo Personal AI 
 [Files]
 Source: "icona.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#BuildDir}\manifest.xml"; DestDir: "{app}\WordExcel"; Tasks: wordexcel; Flags: ignoreversion
-Source: "condivisione.ps1"; DestDir: "{app}\WordExcel"; Flags: ignoreversion
 Source: "{#BuildDir}\outlook\PersonalAIAssistant.Outlook.dll"; DestDir: "{app}\Outlook"; Tasks: outlook; Flags: ignoreversion
 Source: "{#BuildDir}\outlook\PersonalAIAssistant.Outlook.dll.manifest"; DestDir: "{app}\Outlook"; Tasks: outlook; Flags: ignoreversion
 Source: "{#BuildDir}\outlook\PersonalAIAssistant.Outlook.vsto"; DestDir: "{app}\Outlook"; Tasks: outlook; Flags: ignoreversion
@@ -197,9 +199,12 @@ function RunShareScript(Action: String; Uninstalling: Boolean; var RC: Integer):
 var
   Params: String;
 begin
-  Params := '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\WordExcel\condivisione.ps1') + '" -Azione ' + Action;
+  { Codice e manifest sono incorporati nel Setup alla compilazione (build.ps1): il processo elevato
+    non legge file da cartelle scrivibili dall'utente, quindi non c'e' nulla da sostituire nel frattempo. }
   if Action = 'Crea' then
-    Params := Params + ' -ManifestSource "' + ExpandConstant('{app}\WordExcel\manifest.xml') + '"';
+    Params := '-NoProfile -NonInteractive -EncodedCommand ' + '{#EncCrea}'
+  else
+    Params := '-NoProfile -NonInteractive -EncodedCommand ' + '{#EncRimuovi}';
   Result := ShellExec('runas', ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Params, '', SW_HIDE, ewWaitUntilTerminated, RC);
 end;
 

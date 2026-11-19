@@ -40,15 +40,42 @@ const PAA_VERSION = '0.1.0';
 // Chiavi salvate con un prefisso dell'app (prima: "<provider>_api_key", nomi generici).
 const AI_KEY_PREFIX = 'paa.key.';
 
+// Chiavi "solo per questa sessione": restano in memoria finche' il pannello e' aperto, mai su disco.
+const aiSessionKeys = {};
+const AI_PERSIST_PREF = 'paa.persist';
+
+/** true se l'utente vuole che le chiavi siano ricordate su questo PC (predefinito). */
+function aiPersistKeys() {
+  try { return localStorage.getItem(AI_PERSIST_PREF) !== '0'; } catch (e) { return false; }
+}
+
 function aiGetKey(provider) {
+  if (aiSessionKeys[provider]) return aiSessionKeys[provider];
   try { return localStorage.getItem(AI_KEY_PREFIX + provider) || ''; } catch (e) { return ''; }
 }
 
+/** Dove si trova la chiave: 'salvata' (su questo PC), 'sessione' (solo in memoria) o '' (nessuna). */
+function aiKeyStorage(provider) {
+  if (aiSessionKeys[provider]) return 'sessione';
+  try { return localStorage.getItem(AI_KEY_PREFIX + provider) ? 'salvata' : ''; } catch (e) { return ''; }
+}
+
 function aiSetKey(provider, value) {
-  try {
-    if (value) localStorage.setItem(AI_KEY_PREFIX + provider, value);
-    else localStorage.removeItem(AI_KEY_PREFIX + provider);
-  } catch (e) { /* storage non disponibile */ }
+  delete aiSessionKeys[provider];
+  try { localStorage.removeItem(AI_KEY_PREFIX + provider); } catch (e) { /* storage non disponibile */ }
+  if (!value) return;
+  if (aiPersistKeys()) {
+    try { localStorage.setItem(AI_KEY_PREFIX + provider, value); return; } catch (e) { /* ripiego in memoria */ }
+  }
+  aiSessionKeys[provider] = value;
+}
+
+/** Cambia la preferenza e sposta di conseguenza le chiavi gia' presenti. */
+function aiSetPersist(persist) {
+  const current = {};
+  for (const p of ['gemini', 'openai', 'claude']) current[p] = aiGetKey(p);
+  try { localStorage.setItem(AI_PERSIST_PREF, persist ? '1' : '0'); } catch (e) { /* storage non disponibile */ }
+  for (const p of Object.keys(current)) if (current[p]) aiSetKey(p, current[p]);
 }
 
 // Migrazione una tantum dai nomi usati fino alla versione di prova.
