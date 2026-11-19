@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="100%" height="auto" role="img" aria-label="Anteprima del pannello Personal AI Assistant dentro Microsoft Word">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.12" />
+    </filter>
+    <linearGradient id="officeHeader" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#185abd" />
+      <stop offset="100%" stop-color="#2b7cd3" />
+    </linearGradient>
+    <linearGradient id="btnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Finestra principale applicazione -->
+  <g filter="url(#shadow)">
+    <!-- Finestra di sfondo -->
+    <rect x="20" y="20" width="600" height="440" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+    
+    <!-- Barra del titolo Office -->
+    <path d="M 20 32 Q 20 20 32 20 L 608 20 Q 620 20 620 32 L 620 54 L 20 54 Z" fill="url(#officeHeader)" />
+    
+    <!-- Controlli finestra -->
+    <circle cx="42" cy="37" r="4.5" fill="#f87171" opacity="0.8" />
+    <circle cx="58" cy="37" r="4.5" fill="#fbbf24" opacity="0.8" />
+    <circle cx="74" cy="37" r="4.5" fill="#34d399" opacity="0.8" />
+    
+    <text x="320" y="41" text-anchor="middle" fill="#ffffff" font-family="-apple-system, Segoe UI, sans-serif" font-size="12" font-weight="500" letter-spacing="0.02em">Documento1 - Microsoft Word • Personal AI</text>
+
+    <!-- Barra Multifunzione / Ribbon simulata -->
+    <rect x="20" y="54" width="600" height="38" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+    <text x="38" y="77" fill="#64748b" font-family="-apple-system, Segoe UI, sans-serif" font-size="11" font-weight="500">Home</text>
+    <text x="82" y="77" fill="#64748b" font-family="-apple-system, Segoe UI, sans-serif" font-size="11" font-weight="500">Inserisci</text>
+    <text x="136" y="77" fill="#64748b" font-family="-apple-system, Segoe UI, sans-serif" font-size="11" font-weight="500">Layout</text>
+    <rect x="180" y="61" width="98" height="24" rx="4" fill="#e0f2fe" stroke="#bae6fd" stroke-width="1" />
+    <text x="229" y="77" text-anchor="middle" fill="#0284c7" font-family="-apple-system, Segoe UI, sans-serif" font-size="11" font-weight="600">Personal AI</text>
+
+    <!-- Area Foglio Word a sinistra -->
+    <rect x="20" y="92" width="310" height="368" fill="#f1f5f9" />
+    <!-- Foglio A4 -->
+    <rect x="42" y="108" width="266" height="352" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+    
+    <!-- Testo simulato documento -->
+    <rect x="62" y="130" width="130" height="10" rx="3" fill="#0f172a" opacity="0.75" />
+    <rect x="62" y="152" width="226" height="5" rx="2" fill="#94a3b8" />
+    <rect x="62" y="164" width="210" height="5" rx="2" fill="#94a3b8" />
+    <rect x="62" y="176" width="220" height="5" rx="2" fill="#94a3b8" />
+    
+    <!-- Selezione attiva nel documento -->
+    <rect x="58" y="196" width="234" height="66" rx="4" fill="#bae6fd" opacity="0.45" />
+    <rect x="62" y="204" width="222" height="6" rx="2" fill="#0284c7" />
+    <rect x="62" y="218" width="200" height="6" rx="2" fill="#0284c7" />
+    <rect x="62" y="232" width="216" height="6" rx="2" fill="#0284c7" />
+    <rect x="62" y="246" width="160" height="6" rx="2" fill="#0284c7" />
+
+    <rect x="62" y="280" width="226" height="5" rx="2" fill="#94a3b8" />
+    <rect x="62" y="292" width="190" height="5" rx="2" fill="#94a3b8" />
+
+    <!-- ================= TASK PANE A DESTRA ================= -->
+    <g transform="translate(330, 92)">
+      <!-- Sfondo Task Pane -->
+      <rect x="0" y="0" width="290" height="368" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+      
+      <!-- Intestazione Task Pane -->
+      <rect x="0" y="0" width="290" height="42" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+      <rect x="12" y="11" width="20" height="20" rx="4" fill="#0284c7" />
+      <path d="M 16 21 L 20 25 L 28 17" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <text x="38" y="25" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="12" font-weight="700">Personal AI Assistant</text>
+      
+      <!-- Badge Host Word -->
+      <rect x="195" y="12" width="50" height="18" rx="9" fill="#e0f2fe" stroke="#bae6fd" stroke-width="1" />
+      <text x="220" y="24.5" text-anchor="middle" fill="#0369a1" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5" font-weight="700">WORD</text>
+      
+      <!-- Icona Ingranaggio Impostazioni -->
+      <circle cx="268" cy="21" r="7" fill="none" stroke="#64748b" stroke-width="1.8" />
+      <circle cx="268" cy="21" r="2.5" fill="#64748b" />
+
+      <!-- Barra selettore modello -->
+      <rect x="12" y="52" width="266" height="28" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1" />
+      <text x="22" y="70" fill="#64748b" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="600">Modello:</text>
+      <text x="74" y="70" fill="#0284c7" font-family="-apple-system, Segoe UI, sans-serif" font-size="11" font-weight="600">Gemini 3.1 Flash Lite</text>
+      <path d="M 264 68 L 268 73 L 272 68" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" />
+
+      <!-- Sezione Lavorazione Testo -->
+      <text x="14" y="102" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="11.5" font-weight="700">Testo Selezionato</text>
+      <text x="14" y="115" fill="#64748b" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5">4 paragrafi selezionati nel documento</text>
+
+      <!-- Griglia 4 pulsanti azione -->
+      <g transform="translate(12, 124)">
+        <!-- Riscrivi -->
+        <rect x="0" y="0" width="128" height="34" rx="6" fill="#ffffff" stroke="#0284c7" stroke-width="1.5" />
+        <path d="M 12 21 L 22 13 L 25 16 L 15 24 L 10 25 Z" fill="none" stroke="#0284c7" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="32" y="21.5" fill="#0284c7" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="600">Riscrivi</text>
+        
+        <!-- Correggi -->
+        <rect x="138" y="0" width="128" height="34" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+        <circle cx="150" cy="17" r="6" fill="none" stroke="#64748b" stroke-width="1.5"/>
+        <path d="M 147 17 L 149 19 L 154 14" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="162" y="21.5" fill="#334155" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="500">Correggi</text>
+        
+        <!-- Sintetizza -->
+        <rect x="0" y="40" width="128" height="34" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+        <path d="M 10 52 L 24 52 M 10 57 L 20 57 M 10 62 L 24 62" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
+        <text x="32" y="61.5" fill="#334155" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="500">Sintetizza</text>
+        
+        <!-- Traduci -->
+        <rect x="138" y="40" width="128" height="34" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+        <circle cx="150" cy="57" r="6" fill="none" stroke="#64748b" stroke-width="1.5"/>
+        <path d="M 144 57 Q 150 51 156 57 Q 150 63 144 57 M 150 51 L 150 63" fill="none" stroke="#64748b" stroke-width="1.2"/>
+        <text x="162" y="61.5" fill="#334155" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="500">Traduci</text>
+      </g>
+
+      <!-- Risultato con effetto Typewriter -->
+      <g transform="translate(12, 212)">
+        <rect x="0" y="0" width="266" height="106" rx="8" fill="#f8fafc" stroke="#bae6fd" stroke-width="1.5" />
+        
+        <text x="12" y="18" fill="#0369a1" font-family="-apple-system, Segoe UI, sans-serif" font-size="10" font-weight="700" letter-spacing="0.04em">RISULTATO GENERATO</text>
+        
+        <text x="12" y="38" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">Le soluzioni illustrate permettono di ottimizzare</text>
+        <text x="12" y="54" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">i flussi informativi aziendali garantendo</text>
+        <text x="12" y="70" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">il pieno rispetto della riservatezza dei dati.</text>
+        
+        <!-- Cursore di digitazione lampeggiante -->
+        <rect x="238" y="59" width="6" height="13" fill="#0284c7" rx="1" />
+
+        <!-- Pulsante azione rapida Sostituisci -->
+        <rect x="10" y="80" width="120" height="20" rx="4" fill="url(#btnGrad)" />
+        <text x="70" y="93.5" text-anchor="middle" fill="#ffffff" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5" font-weight="600">Sostituisci nel testo</text>
+        
+        <rect x="136" y="80" width="120" height="20" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+        <text x="196" y="93.5" text-anchor="middle" fill="#475569" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5" font-weight="500">Copia risultato</text>
+      </g>
+
+      <!-- Footer pannello -->
+      <text x="145" y="356" text-anchor="middle" fill="#94a3b8" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5">Personal AI Assistant v0.1.0 • Chiamate dirette ai provider</text>
+    </g>
+  </g>
+</svg>

@@ -16,12 +16,14 @@
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
-        <span class="app-logo">🤖</span>
+        <img src="assets/icon-32.png" alt="Personal AI Assistant" class="app-logo-img" width="22" height="22">
         <span class="header-title">Personal AI Assistant</span>
       </div>
       <div class="header-right">
         <span id="host-badge" class="host-badge">Rilevamento...</span>
-        <button id="btn-toggle-settings" class="btn-icon" title="Impostazioni API Key e Modelli">⚙️</button>
+        <button id="btn-toggle-settings" class="btn-icon" title="Impostazioni API Key e Modelli" aria-label="Impostazioni">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
       </div>
     </header>
 
@@ -35,13 +37,18 @@
     <!-- Messaggi (sostituisce alert(), non affidabile nei pannelli Office) -->
     <div id="notice" class="notice hidden" role="status">
       <span id="notice-text"></span>
-      <button id="notice-close" class="btn-icon" title="Chiudi">✖</button>
+      <button id="notice-close" class="btn-icon" title="Chiudi" aria-label="Chiudi avviso">
+        <svg class="ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
 
     <!-- Settings Card (Collapsible) -->
     <section id="settings-card" class="settings-card hidden">
       <div class="settings-header">
-        <h4>🔑 Gestione Chiavi API</h4>
+        <h4>
+          <svg class="ui-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9l-1.5-1.5L5 9a7 7 0 1 0 9.9 9.9L22 12v-3l-3-3v-2l-2-2Z"/><circle cx="7.5" cy="16.5" r="1.5"/></svg>
+          Gestione Chiavi API
+        </h4>
         <small>Le chiavi restano in questo pannello sul tuo PC e vengono inviate solo al provider scelto. I testi che elabori vengono inviati a quel provider: <a href="#" class="key-link" data-key-link="privacy.html">informativa</a>.</small>
       </div>
       <div class="settings-body">
@@ -49,7 +56,7 @@
         <!-- Gemini Key -->
         <div class="key-field">
           <div class="key-label-row">
-            <label for="input-gemini-key">🔵 Google Gemini:</label>
+            <label for="input-gemini-key">Google Gemini:</label>
             <span class="key-right"><a href="#" class="key-link" data-key-link="https://aistudio.google.com/apikey">Ottieni chiave</a> <span id="badge-gemini-status" class="key-badge">...</span></span>
           </div>
           <div class="input-with-button">
@@ -60,7 +67,7 @@
         <!-- OpenAI Key -->
         <div class="key-field">
           <div class="key-label-row">
-            <label for="input-openai-key">🟢 OpenAI / Codex:</label>
+            <label for="input-openai-key">OpenAI / Codex:</label>
             <span class="key-right"><a href="#" class="key-link" data-key-link="https://platform.openai.com/api-keys">Ottieni chiave</a> <span id="badge-openai-status" class="key-badge">...</span></span>
           </div>
           <div class="input-with-button">
@@ -71,7 +78,7 @@
         <!-- Claude Key -->
         <div class="key-field">
           <div class="key-label-row">
-            <label for="input-claude-key">🟠 Anthropic Claude:</label>
+            <label for="input-claude-key">Anthropic Claude:</label>
             <span class="key-right"><a href="#" class="key-link" data-key-link="https://console.anthropic.com/settings/keys">Ottieni chiave</a> <span id="badge-claude-status" class="key-badge">...</span></span>
           </div>
           <div class="input-with-button">
@@ -90,10 +97,10 @@
 
     <!-- Manual Host Switcher for Browser Testing -->
     <div id="browser-tabs" class="browser-tabs hidden">
-      <button class="tab-btn active" data-tab="word">📄 Word</button>
-      <button class="tab-btn" data-tab="excel">📊 Excel</button>
-      <button class="tab-btn" data-tab="powerpoint">📽️ PowerPoint</button>
-      <button class="tab-btn" data-tab="outlook">✉️ Outlook</button>
+      <button class="tab-btn active" data-tab="word">Word</button>
+      <button class="tab-btn" data-tab="excel">Excel</button>
+      <button class="tab-btn" data-tab="powerpoint">PowerPoint</button>
+      <button class="tab-btn" data-tab="outlook">Outlook</button>
     </div>
 
     <!-- Loading Indicator -->
@@ -109,24 +116,24 @@
       <!-- ==================== WORD PANEL ==================== -->
       <section id="panel-word" class="host-panel">
         <div class="panel-section">
-          <h3>✍️ Lavorazione Testo Selezionato</h3>
+          <h3>Lavorazione Testo Selezionato</h3>
           <p class="section-desc">Seleziona del testo nel documento Word e scegli un'azione:</p>
           
           <div class="action-grid">
             <button id="btn-word-rewrite" class="btn-action">
-              <span class="icon">✨</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
               <span>Riscrivi & Migliora</span>
             </button>
             <button id="btn-word-grammar" class="btn-action">
-              <span class="icon">🔍</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               <span>Correggi Bozze</span>
             </button>
             <button id="btn-word-summarize" class="btn-action">
-              <span class="icon">📑</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
               <span>Sintetizza</span>
             </button>
             <button id="btn-word-translate" class="btn-action">
-              <span class="icon">🌐</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
               <span>Traduci in Inglese</span>
             </button>
           </div>
@@ -143,7 +150,7 @@
         </div>
 
         <div class="panel-section">
-          <h3>💬 Chiedi o Genera</h3>
+          <h3>Chiedi o Genera</h3>
           <textarea id="word-custom-prompt" class="prompt-box" rows="2" placeholder="Es: 'Scrivi un'introduzione su questo argomento', oppure poni una domanda sul testo..."></textarea>
           <div class="button-group">
             <button id="btn-word-generate" class="btn-primary">Genera al cursore</button>
@@ -155,30 +162,30 @@
       <!-- ==================== EXCEL PANEL ==================== -->
       <section id="panel-excel" class="host-panel hidden">
         <div class="panel-section">
-          <h3>📐 Generatore di Formule</h3>
+          <h3>Generatore di Formule</h3>
           <p class="section-desc">Descrivi in italiano cosa vuoi calcolare o estrarre:</p>
           <textarea id="excel-formula-prompt" class="prompt-box" rows="2" placeholder="Es: 'Cerca il valore di A2 nella colonna G e dammi il prezzo corrispondente in colonna H'"></textarea>
           <button id="btn-excel-gen-formula" class="btn-primary full-width">Genera Formula Excel</button>
         </div>
 
         <div class="panel-section">
-          <h3>📊 Analizza Celle Selezionate</h3>
+          <h3>Analizza Celle Selezionate</h3>
           <p class="section-desc">Seleziona un intervallo di dati nel foglio e premi analizza:</p>
           <button id="btn-excel-analyze-range" class="btn-action full-width">
-            <span class="icon">📈</span>
+            <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             <span>Leggi & Analizza Intervallo Selezionato</span>
           </button>
         </div>
 
         <div class="panel-section">
-          <h3>📉 Crea Grafico</h3>
+          <h3>Crea Grafico</h3>
           <p class="section-desc">Descrivi il grafico, oppure seleziona i dati e lascia vuoto:</p>
           <textarea id="excel-chart-prompt" class="prompt-box" rows="2" placeholder="Es: 'Colonne con il punteggio finale per nominativo' oppure 'torta delle province di nascita'"></textarea>
           <button id="btn-excel-chart" class="btn-primary full-width">Proponi Grafico</button>
         </div>
 
         <div class="panel-section">
-          <h3>📋 Genera Dati di Esempio</h3>
+          <h3>Genera Dati di Esempio</h3>
           <input type="text" id="excel-data-prompt" class="input-text" placeholder="Es: 'Tabella con 5 prodotti, categorie e prezzi'" />
           <button id="btn-excel-gen-table" class="btn-secondary full-width">Inserisci Dati nel Foglio</button>
         </div>
@@ -187,25 +194,37 @@
       <!-- ==================== POWERPOINT PANEL ==================== -->
       <section id="panel-powerpoint" class="host-panel hidden">
         <div class="panel-section">
-          <h3>✍️ Testo Selezionato</h3>
+          <h3>Testo Selezionato</h3>
           <p class="section-desc">Seleziona del testo in una slide e scegli un'azione:</p>
           <div class="action-grid">
-            <button class="btn-action btn-ppt-text" data-action="riscrivi"><span class="icon">✨</span><span>Riscrivi</span></button>
-            <button class="btn-action btn-ppt-text" data-action="correggi"><span class="icon">🔍</span><span>Correggi</span></button>
-            <button class="btn-action btn-ppt-text" data-action="accorcia"><span class="icon">✂️</span><span>Accorcia</span></button>
-            <button class="btn-action btn-ppt-text" data-action="traduci"><span class="icon">🌐</span><span>Traduci in Inglese</span></button>
+            <button class="btn-action btn-ppt-text" data-action="riscrivi">
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              <span>Riscrivi</span>
+            </button>
+            <button class="btn-action btn-ppt-text" data-action="correggi">
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span>Correggi</span>
+            </button>
+            <button class="btn-action btn-ppt-text" data-action="accorcia">
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+              <span>Accorcia</span>
+            </button>
+            <button class="btn-action btn-ppt-text" data-action="traduci">
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span>Traduci in Inglese</span>
+            </button>
           </div>
         </div>
 
         <div class="panel-section">
-          <h3>🧩 Crea Slide da una Scaletta</h3>
+          <h3>Crea Slide da una Scaletta</h3>
           <p class="section-desc">Descrivi la presentazione: le slide vengono aggiunte in fondo, con il tema attuale.</p>
           <textarea id="ppt-outline-prompt" class="prompt-box" rows="3" placeholder="Es: '6 slide sul piano commerciale Q1: obiettivi, mercato, offerta, tempi, budget, prossimi passi'"></textarea>
           <button id="btn-ppt-outline" class="btn-primary full-width">Proponi Slide</button>
         </div>
 
         <div class="panel-section">
-          <h3>🪄 Migliora la Slide Selezionata</h3>
+          <h3>Migliora la Slide Selezionata</h3>
           <p class="section-desc">Riscrive tutti i testi della slide selezionata, mantenendo forme e formattazione.</p>
           <input type="text" id="ppt-improve-prompt" class="input-text" placeholder="Facoltativo: 'più sintetica', 'tono commerciale', 'in inglese'..." />
           <button id="btn-ppt-improve" class="btn-secondary full-width">Proponi Miglioramento</button>
@@ -215,7 +234,7 @@
       <!-- ==================== OUTLOOK PANEL ==================== -->
       <section id="panel-outlook" class="host-panel hidden">
         <div class="panel-section">
-          <h3>✉️ Email Corrente</h3>
+          <h3>Email Corrente</h3>
           <div id="outlook-email-meta" class="email-meta-box">
             <div id="email-sender"><strong>Da:</strong> <span class="placeholder-text">Nessuna email aperta</span></div>
             <div id="email-subject"><strong>Oggetto:</strong> <span class="placeholder-text">-</span></div>
@@ -224,25 +243,29 @@
         </div>
 
         <div class="panel-section">
-          <h3>⚡ Risposte Rapide Intelligenti</h3>
+          <h3>Risposte Rapide Intelligenti</h3>
           <div class="action-grid">
             <button class="btn-action btn-quick-reply" data-intent="Ringrazia e conferma l'accettazione con entusiasmo">
-              <span>✅ Conferma & Ringrazia</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Conferma & Ringrazia</span>
             </button>
             <button class="btn-action btn-quick-reply" data-intent="Rifiuta gentilmente ringraziando per l'opportunità ma indicando indisponibilità">
-              <span>❌ Declina Gentilmente</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Declina Gentilmente</span>
             </button>
             <button class="btn-action btn-quick-reply" data-intent="Chiedi maggiori dettagli, chiarimenti tecnici e tempistiche stimate">
-              <span>❓ Chiedi Chiarimenti</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Chiedi Chiarimenti</span>
             </button>
             <button id="btn-outlook-summarize" class="btn-action">
-              <span>📑 Punti Chiave & Scadenze</span>
+              <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span>Punti Chiave & Scadenze</span>
             </button>
           </div>
         </div>
 
         <div class="panel-section">
-          <h3>✍️ Risposta Personalizzata</h3>
+          <h3>Risposta Personalizzata</h3>
           <textarea id="outlook-custom-reply" class="prompt-box" rows="2" placeholder="Istruzioni: 'Rispondi che sono in ferie fino a martedì ma posso sentirli mercoledì pomeriggio...'"></textarea>
           <button id="btn-outlook-gen-custom" class="btn-primary full-width">Scrivi Bozza</button>
         </div>
@@ -252,7 +275,9 @@
       <section id="result-container" class="result-card hidden">
         <div class="result-header">
           <span class="result-title" id="result-model-badge">Risultato AI</span>
-          <button id="btn-close-result" class="btn-icon">✖</button>
+          <button id="btn-close-result" class="btn-icon" aria-label="Chiudi risultato">
+            <svg class="ui-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <div id="result-content" class="result-body"></div>
         <div class="result-actions">

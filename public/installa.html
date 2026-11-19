@@ -27,6 +27,27 @@
     </nav>
   </header>
 
+  <!-- Sezione Hero di Prodotto -->
+  <section class="hero-product">
+    <div class="hero-grid">
+      <div class="hero-text-col">
+        <div class="hero-tagline">Assistente AI integrato in Microsoft Office</div>
+        <p class="hero-lead">Chiamate dirette dal tuo PC ai provider con la tua chiave personale. Nessun server intermedio.</p>
+        <div class="hero-actions-row">
+          <a class="btn" id="download" href="#">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Scarica l'installazione
+          </a>
+          <span class="sub" id="download-note">Scegli il file <code>PersonalAIAssistant-…-Setup.exe</code> nell'ultima versione pubblicata.</span>
+        </div>
+      </div>
+      <div class="hero-preview-col">
+        <img class="hero-preview-img" src="assets/pagine/mockup-pannello.svg" alt="Anteprima del pannello Personal AI Assistant dentro Microsoft Word" width="420" height="315">
+      </div>
+    </div>
+  </section>
+
+  <!-- Riquadro Avviso Chiave API (immediatamente visibile in alto) -->
   <div class="note-key-requirement" role="note">
     <div class="note-title">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9l-1.5-1.5L5 9a7 7 0 1 0 9.9 9.9L22 12v-3l-3-3v-2l-2-2Z"/><circle cx="7.5" cy="16.5" r="1.5"/></svg>
@@ -39,18 +60,52 @@
     <p>Il modo più semplice per iniziare gratis: una chiave <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
   </div>
 
-  <div class="hero-card">
-    <p><strong>Cosa fa:</strong> in Word riscrive, corregge, riassume e traduce il testo selezionato o risponde a domande sul documento;
-      in Excel genera formule in italiano, analizza i dati e crea grafici; in PowerPoint crea slide da una scaletta e migliora i testi; in Outlook riassume le email selezionate e prepara bozze di risposta.</p>
-    <div class="hero-actions">
-      <div class="hero-actions-row">
-        <a class="btn" id="download" href="#">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Scarica l'installazione
-        </a>
-        <span class="sub" id="download-note">Scegli il file <code>PersonalAIAssistant-…-Setup.exe</code> nell'ultima versione pubblicata.</span>
+  <!-- Schede per applicazione ("Cosa fa") -->
+  <h2>Cosa fa</h2>
+  <div class="apps-grid">
+    <article class="app-card word">
+      <div class="app-card-header">
+        <svg class="app-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <h3 class="app-card-title">Word</h3>
       </div>
-    </div>
+      <ul class="app-card-list">
+        <li>Riscrive, corregge, riassume e traduce il testo selezionato</li>
+        <li>Risponde a domande sul documento</li>
+      </ul>
+    </article>
+
+    <article class="app-card excel">
+      <div class="app-card-header">
+        <svg class="app-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+        <h3 class="app-card-title">Excel</h3>
+      </div>
+      <ul class="app-card-list">
+        <li>Genera formule in italiano</li>
+        <li>Analizza i dati e crea grafici</li>
+      </ul>
+    </article>
+
+    <article class="app-card powerpoint">
+      <div class="app-card-header">
+        <svg class="app-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <h3 class="app-card-title">PowerPoint</h3>
+      </div>
+      <ul class="app-card-list">
+        <li>Crea slide da una scaletta</li>
+        <li>Migliora i testi della slide</li>
+      </ul>
+    </article>
+
+    <article class="app-card outlook">
+      <div class="app-card-header">
+        <svg class="app-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <h3 class="app-card-title">Outlook</h3>
+      </div>
+      <ul class="app-card-list">
+        <li>Riassume le email selezionate</li>
+        <li>Prepara bozze di risposta</li>
+      </ul>
+    </article>
   </div>
 
   <h2>Requisiti</h2>
