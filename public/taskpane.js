@@ -798,11 +798,19 @@ async function insertChart(spec) {
 
       let dataSheet = ctx.workbook.worksheets.getItemOrNullObject(CHART_DATA_SHEET);
       await ctx.sync();
-      if (dataSheet.isNullObject) dataSheet = ctx.workbook.worksheets.add(CHART_DATA_SHEET);
-      const dUsed = dataSheet.getUsedRangeOrNullObject(true);
-      dUsed.load(['rowIndex', 'rowCount']);
-      await ctx.sync();
-      const start = dUsed.isNullObject ? 0 : dUsed.rowIndex + dUsed.rowCount + 1;
+      let start = 0;
+      if (dataSheet.isNullObject) {
+        dataSheet = ctx.workbook.worksheets.add(CHART_DATA_SHEET); // foglio nuovo: si parte dalla riga 1
+      } else {
+        // Prima si verifica se c'e' un'area usata, poi se ne leggono le proprieta'.
+        const dUsed = dataSheet.getUsedRangeOrNullObject(true);
+        await ctx.sync();
+        if (!dUsed.isNullObject) {
+          dUsed.load(['rowIndex', 'rowCount']);
+          await ctx.sync();
+          start = dUsed.rowIndex + dUsed.rowCount + 1;
+        }
+      }
       const label = spec.nomiSerie[0] || (spec.modo === 'conteggio' ? 'Conteggio' : spec.modo === 'somma' ? 'Somma' : 'Media');
       dataSheet.getRangeByIndexes(start, 0, 1, 2).values = [[spec.titolo || 'Grafico', label]];
       dataSheet.getRangeByIndexes(start + 1, 0, table.length, 2).values = table;
@@ -858,13 +866,31 @@ function parseTable(text) {
  * per cui è stata chiesta. Se cambia la selezione o il risultato, si chiede di nuovo.
  * Restituisce true se si può scrivere.
  */
-function confirmOverwrite(address, occupied, content) {
-  if (!occupied) { pendingOverwrite = null; return true; }
-  const token = `${address}\u0000${lastResultKind}\u0000${content}`;
+function confirmOverwrite(dest, content) {
+  if (!dest.occupied) { pendingOverwrite = null; return true; }
+  // Il token lega la conferma a: foglio (id), indirizzo completo, contenuto attuale della
+  // destinazione, tipo di risultato e testo da scrivere. Qualunque cambiamento richiede un nuovo clic.
+  const token = [dest.sheetId, dest.address, dest.snapshot, lastResultKind, content].join('\u0000');
   if (pendingOverwrite === token) { pendingOverwrite = null; return true; }
   pendingOverwrite = token;
-  notify(`${address} contiene già dati. Premi di nuovo lo stesso pulsante per sovrascrivere proprio quest'area, oppure cambia selezione.`, 'warn');
+  notify(`${dest.label} contiene già dati. Premi di nuovo lo stesso pulsante per sovrascrivere proprio quest'area, oppure cambia selezione.`, 'warn');
   return false;
+}
+
+/** Legge lo stato di un intervallo di destinazione: occupato anche se contiene solo formule (es. =""). */
+async function describeDestination(context, range) {
+  range.load(['address', 'values', 'formulas']);
+  range.worksheet.load(['id', 'name']);
+  await context.sync();
+  const occupied = range.values.some(r => r.some(v => v !== '' && v !== null)) ||
+                   range.formulas.some(r => r.some(f => typeof f === 'string' && f.startsWith('=')));
+  return {
+    occupied,
+    sheetId: range.worksheet.id,
+    address: range.address,                       // qualificato con il nome del foglio
+    label: `${range.worksheet.name}!${range.address.replace(/^.*!/, '')}`,
+    snapshot: JSON.stringify(range.formulas)
+  };
 }
 
 /** Applica il risultato in Excel secondo il tipo deciso dal pulsante che l'ha generato. */
@@ -885,12 +911,8 @@ async function applyToExcel(text) {
       const perRow = /TIPO:\s*RIGA/i.test(text);
       const t = await getFormulaTarget(context);
       const dest = perRow && t.rows > 1 ? t.full : t.first;
-      const destAddress = perRow && t.rows > 1 ? t.fullAddress : t.firstAddress;
 
-      dest.load('values');
-      await context.sync();
-      const occupied = dest.values.some(r => r.some(v => v !== '' && v !== null));
-      if (!confirmOverwrite(destAddress, occupied, f)) return;
+      if (!confirmOverwrite(await describeDestination(context, dest), f)) return;
 
       // Formula italiana → formulasLocal (come digitata in Excel); altrimenti formulas (inglese).
       if (excelIsItalian()) t.first.formulasLocal = [[f]]; else t.first.formulas = [[f]];
@@ -924,11 +946,7 @@ async function applyToExcel(text) {
       matrix = [[text.startsWith('=') ? "'" + text : text]];
     }
     const target = start.getResizedRange(matrix.length - 1, matrix[0].length - 1);
-    target.load(['address', 'values']);
-    await context.sync();
-
-    const occupied = target.values.some(r => r.some(v => v !== '' && v !== null));
-    if (!confirmOverwrite(target.address.replace(/^.*!/, ''), occupied, text)) return;
+    if (!confirmOverwrite(await describeDestination(context, target), text)) return;
     target.values = matrix;
     await context.sync();
     notify(`Inseriti ${matrix.length}×${matrix[0].length} valori in ${target.address.replace(/^.*!/, '')}.`, 'success');
@@ -1150,8 +1168,23 @@ async function insertPptSlides(slides) {
 async function applyPptImprove(p) {
   await PowerPoint.run(async (ctx) => {
     const slide = ctx.presentation.slides.getItem(p.slideId);
-    p.shapes.forEach(s => { slide.shapes.getItem(s.id).textFrame.textRange.text = s.after; });
+    // Prima di scrivere si rileggono i testi: se la slide e' cambiata dopo la proposta, non si tocca nulla.
+    const ranges = p.shapes.map(s => {
+      const r = slide.shapes.getItem(s.id).textFrame.textRange;
+      r.load('text');
+      return r;
+    });
+    try { await ctx.sync(); }
+    catch (e) { throw new Error('La slide o una delle sue caselle non esiste più: proponi di nuovo il miglioramento.'); }
+    const changed = ranges.some((r, i) => (r.text || '') !== p.shapes[i].before);
+    if (changed) {
+      lastPptImprove = null;
+      notify('La slide è stata modificata dopo la proposta: per non perdere le tue modifiche non applico nulla. Premi di nuovo "Proponi Miglioramento".', 'warn');
+      return;
+    }
+    ranges.forEach((r, i) => { r.text = p.shapes[i].after; });
     await ctx.sync();
+    lastPptImprove = null;
     notify('Testi della slide aggiornati (Ctrl+Z per annullare).', 'success');
   });
 }

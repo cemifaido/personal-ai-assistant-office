@@ -229,6 +229,12 @@ begin
   if RC = 2 then
     MsgBox('Il servizio di Windows "Server" non e'' attivo: Word ed Excel non possono usare il catalogo.' + #13#10 +
            'Chiedi all''amministratore del PC di attivarlo, poi ripeti l''installazione.', mbError, MB_OK)
+  else if RC = 4 then
+    MsgBox('La cartella C:\ProgramData\PersonalAIAssistant esiste gia'' ma non e'' sicura (creata da un utente non amministratore o collegamento ad altra cartella).' + #13#10 +
+           'Per sicurezza non e'' stata usata: chiedi all''amministratore di eliminarla, poi ripeti l''installazione.', mbError, MB_OK)
+  else if RC = 5 then
+    MsgBox('Su questo PC esiste gia'' una condivisione di nome PersonalAIAssistant$ che non appartiene a Personal AI Assistant.' + #13#10 +
+           'Non e'' stata modificata: chiedi all''amministratore di verificarla, poi ripeti l''installazione.', mbError, MB_OK)
   else if RC <> 0 then
     MsgBox('Creazione della cartella condivisa non riuscita (codice ' + IntToStr(RC) + ').' + #13#10 +
            'Dettagli: C:\ProgramData\PersonalAIAssistant\condivisione.log', mbError, MB_OK);
@@ -283,7 +289,16 @@ begin
   finally
     FindClose(A);
   end;
-  DeleteMatching(Wef + 'AppCommands\11.0\TrustedCatalog\', '{#AddinId}*');
+  { comandi della scheda: una sottocartella per versione (11.0, 12.0, 16.0...) }
+  if FindFirst(Wef + 'AppCommands\*', A) then
+  try
+    repeat
+      if ((A.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) and (A.Name <> '.') and (A.Name <> '..') then
+        DeleteMatching(Wef + 'AppCommands\' + A.Name + '\TrustedCatalog\', '{#AddinId}*');
+    until not FindNext(A);
+  finally
+    FindClose(A);
+  end;
   DeleteMatching(Wef + 'AddinInfo\1\filesystem\Word\1\', '{#AddinId}_*');
   DeleteMatching(Wef + 'AddinInfo\1\filesystem\Excel\1\', '{#AddinId}_*');
   DeleteMatching(Wef + 'AddinInfo\1\filesystem\PowerPoint\1\', '{#AddinId}_*');

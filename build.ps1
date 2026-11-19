@@ -28,6 +28,7 @@ $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.e
 $vs = & $vswhere -latest -requires Microsoft.VisualStudio.Component.Sharepoint.Tools -property installationPath
 if (-not $vs) { throw 'Visual Studio con "Sviluppo di Microsoft 365" (VSTO) non trovato.' }
 $msbuild = Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
+$vsMajor = (& $vswhere -latest -requires Microsoft.VisualStudio.Component.Sharepoint.Tools -property installationVersion).Split('.')[0]
 $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
 if (-not (Test-Path $iscc)) { throw 'Inno Setup 6 non trovato.' }
 
@@ -42,7 +43,7 @@ New-Item "$build\outlook" -ItemType Directory -Force | Out-Null
 New-Item $release -ItemType Directory -Force | Out-Null
 
 Step "Compilazione add-in Outlook"
-& $msbuild $proj /t:Rebuild /p:Configuration=Release /p:VisualStudioVersion=18.0 /nologo /v:minimal
+& $msbuild $proj /t:Rebuild /p:Configuration=Release "/p:VisualStudioVersion=$vsMajor.0" /nologo /v:minimal
 if ($LASTEXITCODE -ne 0) { throw 'Compilazione add-in Outlook non riuscita.' }
 
 # La compilazione VSTO registra l'add-in per chi compila, puntando alla cartella bin del repository

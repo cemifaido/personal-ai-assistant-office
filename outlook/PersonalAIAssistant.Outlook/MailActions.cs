@@ -27,9 +27,49 @@ namespace PersonalAIAssistant
 
         private static bool busy;
 
-        // ---------------- riassunto ----------------
+        // ---------------- punti di ingresso dai pulsanti ----------------
+        // Gli unici "async void" sono questi: avvolgono TUTTA l'azione, compreso l'uso del modello
+        // a oggetti dopo l'attesa (email eliminata/spostata, Outlook in chiusura...), cosi' nessuna
+        // eccezione arriva al ciclo dei messaggi di Outlook.
 
         public static async void SummarizeSelection(Outlook.Application app)
+        {
+            await Guard(() => SummarizeCoreAsync(app));
+        }
+
+        public static async void Reply(Outlook.Application app, string intent)
+        {
+            await Guard(() => ReplyCoreAsync(app, intent));
+        }
+
+        private static async Task Guard(Func<Task> action)
+        {
+            try
+            {
+                await action();
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                SafeMessage("L'email non e' piu' disponibile (spostata, eliminata o cartella chiusa durante l'elaborazione). Riprova.", MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                SafeMessage("Errore imprevisto: " + ex.Message, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                busy = false;
+            }
+        }
+
+        private static void SafeMessage(string text, MessageBoxIcon icon)
+        {
+            try { MessageBox.Show(text, Title, MessageBoxButtons.OK, icon); } catch { /* Outlook in chiusura */ }
+        }
+
+        // ---------------- riassunto ----------------
+
+        private static async Task SummarizeCoreAsync(Outlook.Application app)
         {
             if (busy) return;
             var exp = app.ActiveExplorer();
@@ -80,7 +120,7 @@ namespace PersonalAIAssistant
 
         // ---------------- risposte ----------------
 
-        public static async void Reply(Outlook.Application app, string intent)
+        private static async Task ReplyCoreAsync(Outlook.Application app, string intent)
         {
             if (busy) return;
             var mails = SelectedMails(app.ActiveExplorer());

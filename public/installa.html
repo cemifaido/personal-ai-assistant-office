@@ -24,7 +24,8 @@
   <h2>Requisiti</h2>
   <ul>
     <li>Windows 10 o 11 e Microsoft Office desktop per Windows (Word, Excel, PowerPoint e Outlook classico).
-      Provato su Office LTSC 2024 a 32 bit; altre edizioni (Microsoft 365, 2019, 2021) dovrebbero funzionare ma non sono ancora state verificate.</li>
+      Provato su Office LTSC 2024 a 32 bit; altre edizioni non sono ancora state verificate (vedi sotto).</li>
+    <li>PowerPoint: le funzioni <em>Crea slide</em> e <em>Migliora slide</em> richiedono Office 2024 o Microsoft 365.</li>
     <li>Per Word ed Excel, <strong>una conferma da amministratore</strong> la prima volta su ogni PC (vedi sotto).</li>
     <li>Una chiave API di almeno un provider: <a href="https://aistudio.google.com/apikey">Google Gemini</a>,
       <a href="https://platform.openai.com/api-keys">OpenAI</a> o <a href="https://console.anthropic.com/settings/keys">Anthropic Claude</a>.</li>
@@ -49,7 +50,7 @@
   <img class="shot" src="assets/guida/uac.png" alt="Richiesta di Windows: consentire a Windows PowerShell di apportare modifiche" width="450">
   <div class="note"><strong>Perché serve:</strong> Office accetta i componenti aggiuntivi di Word ed Excel solo da una cartella di rete.
     L'installazione crea sul PC la cartella condivisa nascosta <code>\\localhost\PersonalAIAssistant$</code>, <strong>in sola lettura</strong>,
-    che contiene soltanto il file di configurazione del componente. Succede una sola volta per PC. Outlook non la richiede.</div>
+    che contiene soltanto il file di configurazione del componente. Succede la prima volta su ogni PC e di nuovo solo se un aggiornamento cambia il file di configurazione. Outlook non la richiede.</div>
 
   <h3>3. Word, Excel e PowerPoint: aggiungi il componente (una sola volta)</h3>
   <p>Apri Word (poi lo stesso in Excel e in PowerPoint) e vai su <strong>Home → Componenti aggiuntivi (Add-ins) → Altri componenti aggiuntivi</strong>,
@@ -73,6 +74,18 @@
   <h2>Disinstallazione</h2>
   <p><em>Impostazioni → App → App installate → Personal AI Assistant → Disinstalla</em>. Alla fine viene chiesto se rimuovere anche la cartella condivisa del PC
     (rispondi No se altri utenti del PC usano Personal AI Assistant). Le chiavi del pannello di Word/Excel si cancellano dal pannello stesso (<em>Cancella</em>) prima di disinstallare.</p>
+
+  <h2>Cosa è stato provato</h2>
+  <p>Beta 0.1.0, Windows 11 con Office LTSC 2024 a 32 bit, utente amministratore e utente standard.</p>
+  <table>
+    <tr><th>Parte</th><th>Stato</th></tr>
+    <tr><td>Installazione, cartella condivisa, <em>Aggiungi</em></td><td>Provati su utente standard</td></tr>
+    <tr><td>Word ed Excel (pannello, formule, analisi)</td><td>Provati in Office</td></tr>
+    <tr><td>Excel – grafici</td><td>Proposte provate; inserimento in Excel da verificare</td></tr>
+    <tr><td>PowerPoint</td><td>Proposte provate; non ancora provato dentro PowerPoint</td></tr>
+    <tr><td>Outlook</td><td>Caricamento e rete provati in Outlook; chiamate ai modelli provate fuori da Outlook</td></tr>
+    <tr><td>Office a 64 bit, Microsoft 365, 2016–2021</td><td>Non provati</td></tr>
+  </table>
 
   <h2>Limiti noti della beta</h2>
   <ul>

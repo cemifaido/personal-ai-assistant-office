@@ -17,7 +17,7 @@ Segui la **[guida illustrata](https://pai-office-automation.github.io/personal-a
 
 1. Scarica `PersonalAIAssistant-<versione>-Setup.exe` dalla pagina [Releases](../../releases/latest).
 2. L'installatore non è ancora firmato: clic destro sul file → *Proprietà* → **Annulla blocco**; se compare *«Windows ha protetto il PC»* → *Ulteriori informazioni* → **Esegui comunque**.
-3. Avanti, avanti, fine. Per Word ed Excel Windows chiede **una volta** una conferma da amministratore (crea una cartella condivisa locale in sola lettura con il solo file di configurazione).
+3. Avanti, avanti, fine. Per Word, Excel e PowerPoint Windows chiede una conferma da amministratore la prima volta (e di nuovo solo se un aggiornamento cambia il file di configurazione) (crea una cartella condivisa locale in sola lettura con il solo file di configurazione).
 4. In Word, Excel e PowerPoint, **una sola volta** in ciascuno: *Home → Componenti aggiuntivi → Altri componenti aggiuntivi → Cartella condivisa → Personal AI Assistant → Aggiungi*. Poi trovi la scheda **Personal AI**.
 5. Inserisci la chiave API: il pannello te la chiede al primo avvio (*Ottieni chiave* porta al sito del provider).
 
@@ -29,8 +29,23 @@ Get-FileHash .\PersonalAIAssistant-0.1.0-Setup.exe -Algorithm SHA256
 
 Il valore deve coincidere con quello pubblicato nella Release.
 
-**Requisiti:** Windows 10/11, Office desktop per Windows (provato su LTSC 2024 a 32 bit), .NET Framework 4.8 per Outlook.
+**Requisiti:** Windows 10/11, Office desktop per Windows, .NET Framework 4.8 per Outlook.
 **Non supportati:** nuovo Outlook per Windows, Outlook sul web, Office per Mac.
+
+### Cosa è stato provato (beta 0.1.0)
+
+Ambiente: Windows 11, Office LTSC 2024 **a 32 bit**, utente amministratore e utente standard.
+
+| Applicazione | Stato |
+| --- | --- |
+| Installazione, catalogo condiviso, *Aggiungi* | Provati su utente standard |
+| Word ed Excel (pannello, formule, analisi) | Provati in Office |
+| Excel - grafici | Proposte provate con i modelli; inserimento in Excel da verificare |
+| PowerPoint | Proposte provate con i modelli; **non ancora provato dentro PowerPoint** |
+| Outlook (add-in) | Caricamento e rete provati in Outlook con la versione di prova; chiamate ai modelli provate fuori da Outlook |
+| Office a 64 bit, Microsoft 365, 2016-2021 | Non provati |
+
+Le funzioni di PowerPoint *Crea slide* e *Migliora slide* richiedono le API PowerPoint 1.4 e 1.5 (Office 2024 o Microsoft 365): con versioni precedenti il pannello lo segnala.
 
 ## Privacy
 
@@ -43,7 +58,7 @@ Leggi l'**[informativa](https://pai-office-automation.github.io/personal-ai-assi
 
 - I risultati dell'AI possono contenere errori: rileggili sempre.
 - Sui PC aziendali senza diritti di amministratore la parte Word/Excel può richiedere l'IT; Outlook si installa comunque.
-- Provato solo su Office LTSC 2024; altre edizioni non ancora verificate.
+- Vedi la tabella *Cosa è stato provato*: diverse combinazioni non sono ancora verificate.
 
 ## Per chi sviluppa
 
