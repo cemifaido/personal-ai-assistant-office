@@ -49,7 +49,7 @@ Ambiente: Windows 11, Office LTSC 2024 **a 32 bit**, utente amministratore e ute
 | PowerPoint | Creazione slide provata in PowerPoint 2024 |
 | Outlook (add-in) | Provato in Outlook classico |
 | Qwen, MiniMax, DeepSeek, OpenRouter (0.2.0) | Indirizzi e accesso dal pannello verificati; non ancora provati con una chiave |
-| Outlook con modello locale (0.2.0) | Chiamate provate con llama-server e Ollama; finestra Impostazioni da provare in Outlook |
+| Outlook con modello locale (0.2.0) | Provato in Outlook classico (llama-server); chiamate provate anche con Ollama |
 | Office a 64 bit, Microsoft 365, 2016-2021 | Non provati |
 
 Le funzioni di PowerPoint *Crea slide* e *Migliora slide* richiedono le API PowerPoint 1.4 e 1.5 (Office 2024 o Microsoft 365): con versioni precedenti il pannello lo segnala.

@@ -2,7 +2,7 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/); versioni secondo [Semantic Versioning](https://semver.org/lang/it/).
 
-## [0.2.0] - beta - in preparazione
+## [0.2.0] - beta - 2026-11-19
 
 ### Aggiunto
 - **Nuovi provider** con API compatibile OpenAI, nel pannello e in Outlook: **Qwen** (Alibaba Cloud, servizio internazionale), **MiniMax**, **DeepSeek** e **OpenRouter**. Chiavi in una sezione comprimibile "Altri provider"; verifica della chiave ed elenco modelli letti dal provider.
