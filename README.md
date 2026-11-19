@@ -2,6 +2,11 @@
 
 **Assistente AI per Word, Excel, PowerPoint e Outlook per Windows** - versione beta 0.1.0
 
+> [!IMPORTANT]
+> **Serve una tua chiave API personale.** Personal AI Assistant non funziona senza almeno una chiave API di **Google Gemini, OpenAI o Anthropic Claude**.
+> La chiave **non è inclusa** nell'installazione: la ottieni tu dal sito del provider ed è legata al **tuo account e al tuo contratto** con quel provider (piano gratuito o a pagamento, limiti, costi e condizioni d'uso sono quelli del provider).
+> Senza chiave il pannello si apre ma non può elaborare nulla. Per iniziare gratis il modo più semplice è una chiave [Google AI Studio](https://aistudio.google.com/apikey).
+
 Usa il modello che preferisci - **Google Gemini, OpenAI o Anthropic Claude** - con la tua chiave API, direttamente dentro Office:
 
 - **Word**: riscrivi con il tono scelto, correggi le bozze, riassumi, traduci, genera testo e fai domande sull'intero documento.
@@ -19,7 +24,7 @@ Segui la **[guida illustrata](https://pai-office-automation.github.io/personal-a
 2. L'installatore non è ancora firmato: clic destro sul file → *Proprietà* → **Annulla blocco**; se compare *«Windows ha protetto il PC»* → *Ulteriori informazioni* → **Esegui comunque**.
 3. Avanti, avanti, fine. Per Word, Excel e PowerPoint Windows chiede una conferma da amministratore la prima volta (e di nuovo solo se un aggiornamento cambia il file di configurazione) (crea una cartella condivisa locale in sola lettura con il solo file di configurazione).
 4. In Word, Excel e PowerPoint, **una sola volta** in ciascuno: *Home → Componenti aggiuntivi → Altri componenti aggiuntivi → Cartella condivisa → Personal AI Assistant → Aggiungi*. Poi trovi la scheda **Personal AI**.
-5. Inserisci la chiave API: il pannello te la chiede al primo avvio (*Ottieni chiave* porta al sito del provider).
+5. Inserisci **la tua** chiave API (obbligatoria, non inclusa): il pannello te la chiede al primo avvio (*Ottieni chiave* porta al sito del provider).
 
 Verifica dell'integrità del file scaricato:
 

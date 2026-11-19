@@ -3,6 +3,14 @@ PERSONAL AI ASSISTANT - versione beta
 Assistente AI per Word, Excel, PowerPoint e Outlook classico per Windows, con il modello che scegli tu:
 Google Gemini, OpenAI o Anthropic Claude. Usa la TUA chiave API del provider scelto.
 
+IMPORTANTE - SERVE UNA TUA CHIAVE API
+Personal AI Assistant NON funziona senza almeno una chiave API di Google Gemini,
+OpenAI o Anthropic Claude. La chiave NON e' inclusa in questa installazione: la ottieni
+tu dal sito del provider ed e' legata al TUO account e al TUO contratto con quel
+provider (piano gratuito o a pagamento, limiti, costi e condizioni sono i suoi).
+Senza chiave il pannello si apre ma non puo' elaborare nulla.
+Per iniziare gratis: chiave Google AI Studio (https://aistudio.google.com/apikey).
+
 COSA VIENE INSTALLATO (solo per il tuo utente Windows)
 - Word, Excel e PowerPoint: il pannello "Personal AI", caricato dal sito del progetto su GitHub Pages.
 - Outlook classico: il gruppo "Personal AI" nella scheda Home (riassunti e bozze di risposta).

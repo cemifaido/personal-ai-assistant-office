@@ -47,7 +47,8 @@ function showOnboardingIfNeeded() {
   const hasAnyKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
   if (hasAnyKey) return;
   document.getElementById('settings-card').classList.remove('hidden');
-  notify('Benvenuto! Per iniziare serve una chiave API di almeno un provider.\n' +
+  notify('Benvenuto! Personal AI Assistant funziona solo con una TUA chiave API personale, non inclusa: ' +
+    'è legata al tuo account e al tuo contratto con il provider. Senza chiave non può elaborare nulla.\n' +
     'La più semplice: Google Gemini → "Ottieni chiave", crea la chiave, copiala qui sotto e premi "Salva chiavi".', 'info');
 }
 

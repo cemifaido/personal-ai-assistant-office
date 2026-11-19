@@ -54,7 +54,7 @@ CloseApplications=no
 Name: "it"; MessagesFile: "compiler:Languages\Italian.isl"
 
 [Messages]
-it.FinishedLabel=Installazione completata.%n%nWORD, EXCEL E POWERPOINT - solo la prima volta, in ciascuno:%nHome > Componenti aggiuntivi (Add-ins) > Altri componenti aggiuntivi > scheda CARTELLA CONDIVISA > Personal AI Assistant > Aggiungi.%nDa quel momento trovi la scheda "Personal AI".%n%nOUTLOOK: gruppo "Personal AI" nella scheda Home.%n%nAl primo utilizzo inserisci la tua chiave API (Impostazioni / icona dell'ingranaggio).
+it.FinishedLabel=Installazione completata.%n%nWORD, EXCEL E POWERPOINT - solo la prima volta, in ciascuno:%nHome > Componenti aggiuntivi (Add-ins) > Altri componenti aggiuntivi > scheda CARTELLA CONDIVISA > Personal AI Assistant > Aggiungi.%nDa quel momento trovi la scheda "Personal AI".%n%nOUTLOOK: gruppo "Personal AI" nella scheda Home.%n%nIMPORTANTE: serve una TUA chiave API (Gemini, OpenAI o Claude), personale e non inclusa. Senza chiave non funziona: inseriscila al primo utilizzo (icona dell'ingranaggio / Impostazioni).
 
 [Tasks]
 Name: "wordexcel"; Description: "Word, Excel e PowerPoint (pannello Personal AI; la prima volta chiede una conferma da amministratore)"

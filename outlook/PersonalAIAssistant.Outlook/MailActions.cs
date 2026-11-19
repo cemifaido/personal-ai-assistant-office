@@ -175,7 +175,7 @@ namespace PersonalAIAssistant
             var settings = AppSettings.Load();
             if (!settings.HasAnyKey())
             {
-                using (var f = new SettingsForm(settings, "Per usare Personal AI serve una chiave API di almeno un provider. " +
+                using (var f = new SettingsForm(settings, "Serve una TUA chiave API personale (non inclusa), legata al tuo contratto con il provider. " +
                                                           "La piu' semplice: Google Gemini -> \"Ottieni chiave\"."))
                     if (f.ShowDialog() != DialogResult.OK) return null;
                 settings = AppSettings.Load();
