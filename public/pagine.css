@@ -787,3 +787,25 @@ footer.site-footer {
 .hero-key-chip a { color: var(--warn-title); font-weight: 600; }
 .hero-preview-caption { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); text-align: center; }
 .hero-preview-col { flex-direction: column; align-items: center; }
+
+/* ---------- Pagina aperta dall'installatore (installa.html#installato) ---------- */
+[hidden] { display: none !important; }
+
+.done-banner {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.done-banner .done-title {
+  font-size: 1.5rem;
+  margin: 0 0 8px;
+  color: var(--success-text);
+}
+.done-banner p, .done-banner ol { margin: 0 0 8px; }
+.done-banner ol { padding-left: 1.4em; }
+.done-banner a { color: inherit; font-weight: 600; text-decoration: underline; }
+@media (max-width: 600px) { .done-banner { padding: 16px; } }

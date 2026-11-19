@@ -104,7 +104,7 @@ Root: HKCU; Subkey: "Software\Microsoft\VSTO\Security\Inclusion\{#InclusionId}";
 Root: HKCU; Subkey: "Software\Microsoft\VSTO\Security\Inclusion\{#InclusionId}"; ValueType: string; ValueName: "PublicKey"; ValueData: "{#FileRead(FileOpen(BuildDir + '\publickey.txt'))}"; Tasks: outlook
 
 [Run]
-Filename: "{#InstallPage}"; Description: "Apri la pagina con le istruzioni illustrate"; Flags: postinstall shellexec skipifsilent nowait
+Filename: "{#InstallPage}#installato"; Description: "Apri la pagina con le istruzioni illustrate"; Flags: postinstall shellexec skipifsilent nowait
 
 [Code]
 function VstoUrl(Param: String): String;
@@ -151,11 +151,69 @@ begin
   Result := OutlookClassicInstalled() and NetFx48Installed() and VstoRuntimeInstalled();
 end;
 
+{ ---------- installazione gia' presente ---------- }
+
+{ Primo numero di una versione "a.b.c" (rimosso dalla stringa); 0 se manca o non e' un numero. }
+function NextVersionPart(var S: String): Integer;
+var
+  P: Integer;
+begin
+  P := Pos('.', S);
+  if P = 0 then begin Result := StrToIntDef(Trim(S), 0); S := ''; end
+  else begin Result := StrToIntDef(Trim(Copy(S, 1, P - 1)), 0); Delete(S, 1, P); end;
+end;
+
+{ <0 se A e' precedente a B, 0 se uguali, >0 se successiva. }
+function CompareVersions(A, B: String): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 1 to 4 do
+  begin
+    Result := NextVersionPart(A) - NextVersionPart(B);
+    if Result <> 0 then Exit;
+  end;
+end;
+
+{ Versione gia' installata per questo utente ('' se nessuna). La chiave e' quella scritta da Inno per AppId. }
+function InstalledVersion(): String;
+begin
+  Result := '';
+  if not RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{E3B6F0A2-7C41-4D8E-9B15-2A6F8C3D1E74}_is1',
+                             'DisplayVersion', Result) then Result := '';
+end;
+
+{ Chiede conferma se il prodotto e' gia' installato. Si sovrascrive sempre sul posto: impostazioni, chiavi,
+  cartella condivisa e "Aggiungi" gia' fatto in Office restano validi (disinstallare li toglierebbe). }
+function ConfirmExistingInstall(): Boolean;
+var
+  Old, Msg: String;
+  Cmp: Integer;
+begin
+  Result := True;
+  Old := InstalledVersion();
+  if Old = '' then Exit;
+  Cmp := CompareVersions('{#AppVer}', Old);
+  if Cmp = 0 then
+    Msg := 'Personal AI Assistant {#AppVer} e'' gia'' installato su questo PC.' + #13#10#13#10 +
+           'Vuoi reinstallarlo? Serve solo a riparare un''installazione che non funziona: ' +
+           'impostazioni e chiavi restano, e in Word, Excel e PowerPoint non devi rifare "Aggiungi".'
+  else if Cmp > 0 then
+    Msg := 'E'' installato Personal AI Assistant ' + Old + '.' + #13#10#13#10 +
+           'Vuoi aggiornarlo alla versione {#AppVer}? Impostazioni e chiavi restano.'
+  else
+    Msg := 'E'' installata una versione piu'' recente di Personal AI Assistant (' + Old + ').' + #13#10#13#10 +
+           'Questa installazione ({#AppVer}) e'' piu'' vecchia: se continui torni alla versione precedente. Continuare?';
+  Result := SuppressibleMsgBox(Msg, mbConfirmation, MB_YESNO, IDYES) = IDYES;
+end;
+
 function InitializeSetup(): Boolean;
 var
   Msg: String;
 begin
-  Result := True;
+  Result := ConfirmExistingInstall();
+  if not Result then Exit;
   if not OfficeInstalled() then
     Result := MsgBox('Microsoft Office desktop non sembra installato su questo PC.' + #13#10 +
                      'Personal AI Assistant funziona con Word, Excel e Outlook per Windows. Continuare comunque?',
