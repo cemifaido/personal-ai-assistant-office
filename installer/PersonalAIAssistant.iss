@@ -54,10 +54,10 @@ CloseApplications=no
 Name: "it"; MessagesFile: "compiler:Languages\Italian.isl"
 
 [Messages]
-it.FinishedLabel=Installazione completata.%n%nWORD ED EXCEL - solo la prima volta:%nHome > Componenti aggiuntivi (Add-ins) > Altri componenti aggiuntivi > scheda CARTELLA CONDIVISA > Personal AI Assistant > Aggiungi.%nDa quel momento trovi la scheda "Personal AI".%n%nOUTLOOK: gruppo "Personal AI" nella scheda Home.%n%nAl primo utilizzo inserisci la tua chiave API (Impostazioni / icona dell'ingranaggio).
+it.FinishedLabel=Installazione completata.%n%nWORD, EXCEL E POWERPOINT - solo la prima volta, in ciascuno:%nHome > Componenti aggiuntivi (Add-ins) > Altri componenti aggiuntivi > scheda CARTELLA CONDIVISA > Personal AI Assistant > Aggiungi.%nDa quel momento trovi la scheda "Personal AI".%n%nOUTLOOK: gruppo "Personal AI" nella scheda Home.%n%nAl primo utilizzo inserisci la tua chiave API (Impostazioni / icona dell'ingranaggio).
 
 [Tasks]
-Name: "wordexcel"; Description: "Word ed Excel (pannello Personal AI; la prima volta chiede una conferma da amministratore)"
+Name: "wordexcel"; Description: "Word, Excel e PowerPoint (pannello Personal AI; la prima volta chiede una conferma da amministratore)"
 Name: "outlook"; Description: "Outlook classico per Windows (gruppo Personal AI nella scheda Home)"; Check: OutlookSupported
 
 [Files]
@@ -74,10 +74,12 @@ Source: "{#BuildDir}\outlook\Microsoft.Office.Tools.Outlook.v4.0.Utilities.dll";
 ; Solo la cache di QUESTO add-in (versioni precedenti); il resto della cache di Office non si tocca.
 Type: filesandordirs; Name: "{localappdata}\Microsoft\Office\16.0\Wef\AddinInfo\1\filesystem\Word\1\{#AddinId}_*"
 Type: filesandordirs; Name: "{localappdata}\Microsoft\Office\16.0\Wef\AddinInfo\1\filesystem\Excel\1\{#AddinId}_*"
+Type: filesandordirs; Name: "{localappdata}\Microsoft\Office\16.0\Wef\AddinInfo\1\filesystem\PowerPoint\1\{#AddinId}_*"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{localappdata}\Microsoft\Office\16.0\Wef\AddinInfo\1\filesystem\Word\1\{#AddinId}_*"
 Type: filesandordirs; Name: "{localappdata}\Microsoft\Office\16.0\Wef\AddinInfo\1\filesystem\Excel\1\{#AddinId}_*"
+Type: filesandordirs; Name: "{localappdata}\Microsoft\Office\16.0\Wef\AddinInfo\1\filesystem\PowerPoint\1\{#AddinId}_*"
 
 [Registry]
 ; Pulizia delle prove precedenti: metodo "sviluppatore" (causa l'errore all'avvio) e add-in Outlook di prova
@@ -172,6 +174,7 @@ begin
   Result := '';
   if FindWindowByClassName('OpusApp') <> 0 then Result := Result + ' Word';
   if FindWindowByClassName('XLMAIN') <> 0 then Result := Result + ' Excel';
+  if FindWindowByClassName('PPTFrameClass') <> 0 then Result := Result + ' PowerPoint';
   if FindWindowByClassName('rctrl_renwnd32') <> 0 then Result := Result + ' Outlook';
 end;
 
@@ -185,7 +188,7 @@ begin
     if Running = '' then Exit;
   until MsgBox('Chiudi questi programmi prima di continuare:' + Running + #13#10#13#10 +
                'Premi OK quando li hai chiusi, Annulla per uscire.', mbInformation, MB_OKCANCEL) = IDCANCEL;
-  Result := 'Chiudi Word, Excel e Outlook e avvia di nuovo l''installazione.';
+  Result := 'Chiudi Word, Excel, PowerPoint e Outlook e avvia di nuovo l''installazione.';
 end;
 
 { ---------- condivisione (unica parte con amministratore) ---------- }
@@ -283,6 +286,7 @@ begin
   DeleteMatching(Wef + 'AppCommands\11.0\TrustedCatalog\', '{#AddinId}*');
   DeleteMatching(Wef + 'AddinInfo\1\filesystem\Word\1\', '{#AddinId}_*');
   DeleteMatching(Wef + 'AddinInfo\1\filesystem\Excel\1\', '{#AddinId}_*');
+  DeleteMatching(Wef + 'AddinInfo\1\filesystem\PowerPoint\1\', '{#AddinId}_*');
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

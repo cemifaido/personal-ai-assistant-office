@@ -13,6 +13,7 @@ Prima versione pubblica. Sostituisce il prototipo con server Node locale e macro
   - Controllo dei prerequisiti (.NET Framework 4.8, runtime VSTO, Outlook classico), richiesta di chiudere Office, rimozione opzionale della condivisione in disinstallazione.
 - **Add-in Outlook** (C#, VSTO): gruppo *Personal AI* nella scheda Home con *Riassumi selezionate*, *Rispondi con AI* (conferma, declina, chiarimenti, personalizzata) e *Impostazioni*.
   Chiavi cifrate con la protezione dati di Windows, chiamate asincrone annullabili, importazione automatica delle impostazioni della vecchia macro.
+- **PowerPoint**: riscrittura, correzione, sintesi e traduzione del testo selezionato; creazione di slide da una scaletta (layout "Titolo e contenuto" del tema, aggiunte in fondo); miglioramento di tutti i testi della slide selezionata, con anteprima e annullamento.
 - **Excel: grafici.** Il modello propone tipo, titolo e intervalli; il pannello valida la proposta e la mostra prima di inserirla. Conteggi, somme e medie per categoria sono calcolati dal pannello in modo esatto, nel foglio *Dati grafici PAI*.
 - Pannello: primo avvio guidato con i link *Ottieni chiave*, pulsante *Cancella* chiavi, numero di versione.
 - Pagine [installazione](public/installa.html) e [informativa privacy](public/privacy.html).

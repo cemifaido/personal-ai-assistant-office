@@ -4,7 +4,7 @@
 
 | Percorso | Contenuto |
 | --- | --- |
-| `public/` | Pannello Word/Excel (Office.js), pubblicato su GitHub Pages: `index.html`, `taskpane.js`, `ai.js` (chiamate ai provider e **catalogo modelli**), pagine `installa.html` e `privacy.html`. |
+| `public/` | Pannello Word/Excel/PowerPoint (Office.js), pubblicato su GitHub Pages: `index.html`, `taskpane.js`, `ai.js` (chiamate ai provider e **catalogo modelli**), pagine `installa.html` e `privacy.html`. |
 | `manifest-word-excel.template.xml` | Manifest Word/Excel con segnaposto `__BASE_URL__`; versione nel tag `<Version>`. |
 | `outlook/PersonalAIAssistant.Outlook/` | Add-in Outlook VSTO (C#, .NET Framework 4.8). Il catalogo modelli in `ModelCatalog.cs` va tenuto allineato a `public/ai.js`. |
 | `installer/` | Script Inno Setup, `condivisione.ps1` (unica parte eseguita come amministratore), testi e icona. |
@@ -64,5 +64,6 @@ I manifest VSTO devono essere firmati. Si usa un certificato del progetto, `CN=P
 
 - Utente Windows **standard** pulito: installazione, richiesta di elevazione, *Aggiungi* in Word ed Excel, scheda presente dopo riavvio.
 - Outlook: nessun avviso di fiducia, riassunto di più email con accenti ed elenchi, risposta con firma e citazione intatte.
+- PowerPoint: testo selezionato (sostituisci e nuova casella), creazione di slide da scaletta, miglioramento della slide selezionata, Ctrl+Z.
 - Excel: formula per riga e calcolo unico, tabella, grafico per intervalli e per conteggio, conferma di sovrascrittura.
 - Disinstallazione: schede rimosse, condivisione rimossa se richiesto.

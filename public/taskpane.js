@@ -22,6 +22,8 @@ Office.onReady((info) => {
     setHost('word', 'Word', hostBadge);
   } else if (info && info.host === Office.HostType.Excel) {
     setHost('excel', 'Excel', hostBadge);
+  } else if (info && info.host === Office.HostType.PowerPoint) {
+    setHost('powerpoint', 'PowerPoint', hostBadge);
   } else if (info && info.host === Office.HostType.Outlook) {
     setHost('outlook', 'Outlook', hostBadge);
     loadOutlookData();
@@ -68,7 +70,7 @@ function setHost(host, label, badge) {
 }
 
 function showPanel(panelName) {
-  ['word', 'excel', 'outlook'].forEach(p => document.getElementById(`panel-${p}`).classList.add('hidden'));
+  ['word', 'excel', 'powerpoint', 'outlook'].forEach(p => document.getElementById(`panel-${p}`).classList.add('hidden'));
   const target = document.getElementById(`panel-${panelName}`);
   if (target) target.classList.remove('hidden');
   document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -245,6 +247,13 @@ function initEventListeners() {
   document.getElementById('btn-excel-gen-table').addEventListener('click', handleExcelGenTable);
   document.getElementById('btn-excel-chart').addEventListener('click', handleExcelChart);
 
+  // PowerPoint
+  document.querySelectorAll('.btn-ppt-text').forEach((btn) => {
+    btn.addEventListener('click', () => handlePptText(btn.dataset.action));
+  });
+  document.getElementById('btn-ppt-outline').addEventListener('click', handlePptOutline);
+  document.getElementById('btn-ppt-improve').addEventListener('click', handlePptImprove);
+
   // Outlook (solo account che supportano gli add-in web; per POP usare la macro VBA)
   document.getElementById('btn-outlook-read').addEventListener('click', loadOutlookData);
   document.querySelectorAll('.btn-quick-reply').forEach((btn) => {
@@ -312,9 +321,16 @@ async function runAI(loaderText, { prompt, context, system, kind = 'text' }) {
   setLoader(true, `${loaderText} (${AI_PROVIDER_NAMES[provider]})`);
   try {
     let result = await aiCall({ provider, model, prompt, context, system, signal: currentAbort.signal });
+    // Risultati strutturati: validati PRIMA di mostrarli; nel riquadro compare una descrizione leggibile.
     if (kind === 'chart') {
-      lastChartSpec = parseChartSpec(result.text); // valida prima di mostrare
+      lastChartSpec = parseChartSpec(result.text);
       result = { ...result, text: describeChartSpec(lastChartSpec) };
+    } else if (kind === 'ppt-slides') {
+      lastPptSlides = parsePptSlides(result.text);
+      result = { ...result, text: describePptSlides(lastPptSlides) };
+    } else if (kind === 'ppt-improve') {
+      lastPptImprove = parsePptImprove(result.text, pendingPptSlide);
+      result = { ...result, text: describePptImprove(lastPptImprove) };
     }
     displayResult(result, kind);
   } catch (err) {
@@ -919,6 +935,253 @@ async function applyToExcel(text) {
   });
 }
 
+/* ===================== PowerPoint ===================== */
+
+const PPT_MAX_SLIDES = 15;
+const PPT_MAX_POINTS = 8;
+let lastPptSlides = null;     // proposta di nuove slide validata
+let pendingPptSlide = null;   // testi letti dalla slide selezionata, in attesa della proposta
+let lastPptImprove = null;    // proposta di miglioramento validata
+
+function pptSupports(version) {
+  try { return Office.context.requirements.isSetSupported('PowerPointApi', version); } catch (e) { return false; }
+}
+
+function pptGetSelectedText() {
+  if (typeof PowerPoint === 'undefined') {
+    return Promise.resolve('Il nostro servizio offre soluzioni innovative per migliorare la produttività dei team commerciali.');
+  }
+  return new Promise((resolve, reject) => {
+    Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (r) => {
+      if (r.status === Office.AsyncResultStatus.Succeeded) resolve(String(r.value || '').trim());
+      else reject(new Error(r.error ? r.error.message : 'selezione non leggibile'));
+    });
+  });
+}
+
+function pptSetSelectedText(text) {
+  return new Promise((resolve, reject) => {
+    Office.context.document.setSelectedDataAsync(text, { coercionType: Office.CoercionType.Text }, (r) => {
+      if (r.status === Office.AsyncResultStatus.Succeeded) resolve();
+      else reject(new Error(r.error ? r.error.message : 'impossibile scrivere nella selezione'));
+    });
+  });
+}
+
+const PPT_TEXT_ACTIONS = {
+  riscrivi: { label: 'Riscrittura', prompt: 'Riscrivi il testo per una slide: chiaro, incisivo e professionale. Mantieni la lingua e la struttura a punti se presente.' },
+  correggi: { label: 'Correzione', prompt: 'Correggi errori grammaticali, ortografici e di punteggiatura senza cambiare stile né contenuto. Se è corretto, restituiscilo identico.' },
+  accorcia: { label: 'Sintesi', prompt: 'Accorcia il testo di circa la metà, adatto a una slide: frasi brevi, niente ripetizioni, mantieni i punti essenziali.' },
+  traduci: { label: 'Traduzione', prompt: 'Traduci il testo in inglese in modo professionale, adatto a una slide.' }
+};
+
+async function handlePptText(action) {
+  const a = PPT_TEXT_ACTIONS[action];
+  let text;
+  try { text = await pptGetSelectedText(); } catch (err) { notify('Errore PowerPoint: ' + err.message, 'error'); return; }
+  if (!text) { notify('Seleziona prima del testo dentro una casella della slide.', 'warn'); return; }
+  return runAI(a.label, {
+    prompt: a.prompt, context: text,
+    system: `Sei un esperto di presentazioni PowerPoint. ${WORD_ONLY_TEXT}`
+  });
+}
+
+/** Elenco dei titoli già presenti, per dare coerenza alle nuove slide (al massimo 30). */
+async function pptReadOutline() {
+  if (typeof PowerPoint === 'undefined' || !pptSupports('1.3')) return '';
+  return PowerPoint.run(async (ctx) => {
+    const slides = ctx.presentation.slides;
+    slides.load('items');
+    await ctx.sync();
+    const first = slides.items.slice(0, 30).map(sl => { const sh = sl.shapes; sh.load('items/type'); return sh; });
+    await ctx.sync();
+    const titles = first.map(sh => {
+      const t = sh.items.find(x => ['Placeholder', 'TextBox', 'GeometricShape'].includes(x.type));
+      if (t) t.textFrame.textRange.load('text');
+      return t;
+    });
+    await ctx.sync().catch(() => {});
+    const lines = titles.map((t, i) => `${i + 1}. ${t ? (t.textFrame.textRange.text || '').split('\n')[0].slice(0, 80) : '(senza testo)'}`);
+    return `Presentazione attuale: ${slides.items.length} slide.\n${lines.join('\n')}`;
+  });
+}
+
+async function handlePptOutline() {
+  const request = document.getElementById('ppt-outline-prompt').value.trim();
+  if (!request) { notify('Descrivi le slide da creare.', 'warn'); return; }
+  if (typeof PowerPoint !== 'undefined' && !pptSupports('1.4')) {
+    notify('Questa versione di PowerPoint non permette di creare slide dai componenti aggiuntivi (serve PowerPointApi 1.4).', 'error');
+    return;
+  }
+  let outline = '';
+  try { outline = await pptReadOutline(); } catch (e) { outline = ''; }
+  return runAI('Proposta di slide', {
+    prompt: `L'utente vuole aggiungere slide a una presentazione: "${request}".
+Rispondi SOLO con un oggetto JSON valido, senza altro testo:
+{"slides": [ {"titolo": "titolo breve", "punti": ["punto 1", "punto 2", "..."]} ]}
+Regole: al massimo ${PPT_MAX_SLIDES} slide e ${PPT_MAX_POINTS} punti per slide; punti brevi (massimo 15 parole), senza simboli di elenco iniziali;
+lingua della richiesta; coerenza con le slide già presenti se indicate nel contesto, senza ripeterle.`,
+    context: outline,
+    system: 'Sei un esperto di presentazioni aziendali. Rispondi solo con JSON.',
+    kind: 'ppt-slides'
+  });
+}
+
+function extractJson(text) {
+  const m = String(text).match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('Il modello non ha restituito una proposta valida: riprova.');
+  try { return JSON.parse(m[0]); } catch (e) { throw new Error('Proposta non leggibile: riprova.'); }
+}
+
+function parsePptSlides(text) {
+  const data = extractJson(text);
+  const slides = Array.isArray(data.slides) ? data.slides : [];
+  if (!slides.length) throw new Error('La proposta non contiene slide.');
+  return slides.slice(0, PPT_MAX_SLIDES).map((sl) => ({
+    titolo: String(sl.titolo || '').trim().slice(0, 150),
+    punti: (Array.isArray(sl.punti) ? sl.punti : []).map(p => String(p).replace(/^\s*[-•*]\s*/, '').trim())
+      .filter(Boolean).slice(0, PPT_MAX_POINTS)
+  })).filter(sl => sl.titolo || sl.punti.length);
+}
+
+function describePptSlides(slides) {
+  return `Slide proposte (${slides.length}), da aggiungere in fondo alla presentazione:\n\n` +
+    slides.map((sl, i) => `${i + 1}. ${sl.titolo}\n${sl.punti.map(p => `   • ${p}`).join('\n')}`).join('\n\n') +
+    '\n\nPremi "Inserisci" per creare le slide.';
+}
+
+/** Legge i testi della prima slide selezionata (forme con testo), con gli identificativi per riscriverli. */
+async function pptReadSelectedSlide() {
+  if (typeof PowerPoint === 'undefined') {
+    return { slideId: 'prova', shapes: [{ id: '1', text: 'Risultati del trimestre' }, { id: '2', text: 'Vendite in crescita\nNuovi clienti nel nord Italia' }] };
+  }
+  return PowerPoint.run(async (ctx) => {
+    const sel = ctx.presentation.getSelectedSlides();
+    sel.load('items/id');
+    await ctx.sync();
+    if (!sel.items.length) throw new Error('Seleziona una slide nel riquadro delle miniature.');
+    const slide = sel.items[0];
+    const shapes = slide.shapes;
+    shapes.load('items/id,items/type,items/name');
+    await ctx.sync();
+    const withText = shapes.items.filter(s => ['Placeholder', 'TextBox', 'GeometricShape'].includes(s.type));
+    withText.forEach(s => s.textFrame.textRange.load('text'));
+    await ctx.sync();
+    const list = withText.map(s => ({ id: s.id, text: s.textFrame.textRange.text || '' })).filter(s => s.text.trim());
+    if (!list.length) throw new Error('La slide selezionata non contiene testi modificabili.');
+    return { slideId: slide.id, shapes: list };
+  });
+}
+
+async function handlePptImprove() {
+  if (typeof PowerPoint !== 'undefined' && !pptSupports('1.5')) {
+    notify('Questa versione di PowerPoint non permette di leggere la slide selezionata (serve PowerPointApi 1.5).', 'error');
+    return;
+  }
+  try { pendingPptSlide = await pptReadSelectedSlide(); }
+  catch (err) { notify('Errore PowerPoint: ' + err.message, 'error'); return; }
+  const wish = document.getElementById('ppt-improve-prompt').value.trim();
+  const numbered = pendingPptSlide.shapes.map((s, i) => `[${i + 1}]\n${s.text}`).join('\n\n');
+  return runAI('Miglioramento della slide', {
+    prompt: `Migliora i testi di questa slide${wish ? ` con questa indicazione: "${wish}"` : ': più chiari, sintetici e incisivi'}.
+I testi sono numerati tra parentesi quadre, uno per casella. Rispondi SOLO con JSON valido:
+{"testi": ["nuovo testo casella 1", "nuovo testo casella 2", "..."]}
+Regole: esattamente ${pendingPptSlide.shapes.length} testi, nello stesso ordine; mantieni gli a capo dove servono gli elenchi; non aggiungere numerazioni o simboli.`,
+    context: numbered,
+    system: 'Sei un esperto di presentazioni aziendali. Rispondi solo con JSON.',
+    kind: 'ppt-improve'
+  });
+}
+
+function parsePptImprove(text, slide) {
+  if (!slide) throw new Error('Slide non disponibile: riprova.');
+  const data = extractJson(text);
+  const testi = Array.isArray(data.testi) ? data.testi.map(String) : [];
+  if (testi.length !== slide.shapes.length) {
+    throw new Error(`La proposta ha ${testi.length} testi invece di ${slide.shapes.length}: riprova.`);
+  }
+  return { slideId: slide.slideId, shapes: slide.shapes.map((s, i) => ({ id: s.id, before: s.text, after: testi[i].trim() })) };
+}
+
+function describePptImprove(p) {
+  return 'Testi proposti per la slide selezionata:\n\n' +
+    p.shapes.map((s, i) => `Casella ${i + 1}:\n${s.after}`).join('\n\n') +
+    '\n\nPremi "Sostituisci" per applicarli (Ctrl+Z per annullare).';
+}
+
+async function insertPptSlides(slides) {
+  await PowerPoint.run(async (ctx) => {
+    const pres = ctx.presentation;
+    // Layout "Titolo e contenuto" del tema, se riconoscibile; altrimenti quello predefinito.
+    let layoutId;
+    try {
+      const layouts = pres.slideMasters.getItemAt(0).layouts;
+      layouts.load('items/id,items/name');
+      await ctx.sync();
+      const l = layouts.items.find(x => /title and content|titolo e contenuto/i.test(x.name));
+      if (l) layoutId = l.id;
+    } catch (e) { /* layout predefinito */ }
+
+    const before = pres.slides.getCount();
+    await ctx.sync();
+    slides.forEach(() => pres.slides.add(layoutId ? { layoutId } : undefined));
+    await ctx.sync();
+
+    pres.slides.load('items');
+    await ctx.sync();
+    const added = pres.slides.items.slice(before.value);
+    const shapeLists = added.map(sl => { const sh = sl.shapes; sh.load('items/type'); return sh; });
+    await ctx.sync();
+
+    shapeLists.forEach((sh, i) => {
+      const spec = slides[i];
+      const boxes = sh.items.filter(x => ['Placeholder', 'TextBox', 'GeometricShape'].includes(x.type));
+      const body = spec.punti.join('\n');
+      if (boxes[0]) boxes[0].textFrame.textRange.text = spec.titolo;
+      if (boxes[1]) boxes[1].textFrame.textRange.text = body;
+      else if (body) added[i].shapes.addTextBox(body, { left: 60, top: 140, width: 600, height: 320 });
+      if (!boxes[0] && spec.titolo) added[i].shapes.addTextBox(spec.titolo, { left: 60, top: 40, width: 600, height: 70 });
+    });
+    await ctx.sync();
+    notify(`Aggiunte ${slides.length} slide in fondo alla presentazione.`, 'success');
+  });
+}
+
+async function applyPptImprove(p) {
+  await PowerPoint.run(async (ctx) => {
+    const slide = ctx.presentation.slides.getItem(p.slideId);
+    p.shapes.forEach(s => { slide.shapes.getItem(s.id).textFrame.textRange.text = s.after; });
+    await ctx.sync();
+    notify('Testi della slide aggiornati (Ctrl+Z per annullare).', 'success');
+  });
+}
+
+async function applyToPowerPoint(text, mode) {
+  if (lastResultKind === 'ppt-slides') {
+    if (!lastPptSlides) { notify('Nessuna slide proposta.', 'warn'); return; }
+    return insertPptSlides(lastPptSlides);
+  }
+  if (lastResultKind === 'ppt-improve') {
+    if (!lastPptImprove) { notify('Nessun miglioramento proposto.', 'warn'); return; }
+    return applyPptImprove(lastPptImprove);
+  }
+  // Testo: sostituisce la selezione, oppure lo aggiunge come nuova casella sulla slide selezionata.
+  if (mode === 'replace') {
+    await pptSetSelectedText(text);
+    notify('Testo sostituito (Ctrl+Z per annullare).', 'success');
+  } else {
+    await PowerPoint.run(async (ctx) => {
+      const sel = ctx.presentation.getSelectedSlides();
+      sel.load('items');
+      await ctx.sync();
+      if (!sel.items.length) throw new Error('Seleziona una slide.');
+      sel.items[0].shapes.addTextBox(text, { left: 60, top: 140, width: 600, height: 200 });
+      await ctx.sync();
+    });
+    notify('Testo aggiunto come nuova casella sulla slide.', 'success');
+  }
+}
+
 /* ===================== Outlook (add-in web) ===================== */
 
 let currentEmailBody = '';
@@ -1001,6 +1264,12 @@ async function applyTextToDocument(text, mode = 'replace') {
       await applyToExcel(text);
     } catch (err) {
       notify('Errore inserimento Excel: ' + err.message, 'error');
+    }
+  } else if (currentHost === 'powerpoint' && typeof PowerPoint !== 'undefined') {
+    try {
+      await applyToPowerPoint(text, mode);
+    } catch (err) {
+      notify('Errore PowerPoint: ' + err.message, 'error');
     }
   } else if (currentHost === 'outlook' && typeof Office !== 'undefined' && Office.context && Office.context.mailbox) {
     const item = Office.context.mailbox.item;

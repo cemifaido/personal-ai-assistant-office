@@ -11,19 +11,19 @@
 <main>
   <header>
     <h1>Personal AI Assistant <span class="badge">beta 0.1.0</span></h1>
-    <p class="sub">Assistente AI per Word, Excel e Outlook per Windows, con Google Gemini, OpenAI o Anthropic Claude e la tua chiave API.</p>
+    <p class="sub">Assistente AI per Word, Excel, PowerPoint e Outlook per Windows, con Google Gemini, OpenAI o Anthropic Claude e la tua chiave API.</p>
   </header>
 
   <div class="card">
     <p><strong>Cosa fa:</strong> in Word riscrive, corregge, riassume e traduce il testo selezionato o risponde a domande sul documento;
-      in Excel genera formule in italiano, analizza i dati e crea grafici; in Outlook riassume le email selezionate e prepara bozze di risposta.</p>
+      in Excel genera formule in italiano, analizza i dati e crea grafici; in PowerPoint crea slide da una scaletta e migliora i testi; in Outlook riassume le email selezionate e prepara bozze di risposta.</p>
     <p><a class="btn" id="download" href="#">Scarica l'installazione</a></p>
     <p class="sub" id="download-note">Scegli il file <code>PersonalAIAssistant-…-Setup.exe</code> nell'ultima versione pubblicata.</p>
   </div>
 
   <h2>Requisiti</h2>
   <ul>
-    <li>Windows 10 o 11 e Microsoft Office desktop per Windows (Word, Excel e Outlook classico).
+    <li>Windows 10 o 11 e Microsoft Office desktop per Windows (Word, Excel, PowerPoint e Outlook classico).
       Provato su Office LTSC 2024 a 32 bit; altre edizioni (Microsoft 365, 2019, 2021) dovrebbero funzionare ma non sono ancora state verificate.</li>
     <li>Per Word ed Excel, <strong>una conferma da amministratore</strong> la prima volta su ogni PC (vedi sotto).</li>
     <li>Una chiave API di almeno un provider: <a href="https://aistudio.google.com/apikey">Google Gemini</a>,
@@ -51,8 +51,8 @@
     L'installazione crea sul PC la cartella condivisa nascosta <code>\\localhost\PersonalAIAssistant$</code>, <strong>in sola lettura</strong>,
     che contiene soltanto il file di configurazione del componente. Succede una sola volta per PC. Outlook non la richiede.</div>
 
-  <h3>3. Word ed Excel: aggiungi il componente (una sola volta)</h3>
-  <p>Apri Word (poi lo stesso in Excel) e vai su <strong>Home → Componenti aggiuntivi (Add-ins) → Altri componenti aggiuntivi</strong>,
+  <h3>3. Word, Excel e PowerPoint: aggiungi il componente (una sola volta)</h3>
+  <p>Apri Word (poi lo stesso in Excel e in PowerPoint) e vai su <strong>Home → Componenti aggiuntivi (Add-ins) → Altri componenti aggiuntivi</strong>,
     scheda <strong>CARTELLA CONDIVISA</strong>, seleziona <strong>Personal AI Assistant</strong> e premi <strong>Aggiungi</strong>.</p>
   <img class="shot" src="assets/guida/aggiungi.png" alt="Finestra Componenti aggiuntivi di Office, scheda Cartella condivisa, pulsante Aggiungi" width="560">
   <p>Da quel momento trovi la scheda <strong>Personal AI</strong> nella barra in alto, a ogni avvio. Il componente non compare nell'elenco rapido del menu <em>Add-ins</em>: si usa dalla scheda.</p>

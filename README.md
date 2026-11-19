@@ -1,11 +1,12 @@
 # Personal AI Assistant
 
-**Assistente AI per Word, Excel e Outlook per Windows** - versione beta 0.1.0
+**Assistente AI per Word, Excel, PowerPoint e Outlook per Windows** - versione beta 0.1.0
 
 Usa il modello che preferisci - **Google Gemini, OpenAI o Anthropic Claude** - con la tua chiave API, direttamente dentro Office:
 
 - **Word**: riscrivi con il tono scelto, correggi le bozze, riassumi, traduci, genera testo e fai domande sull'intero documento.
 - **Excel**: formule in italiano a partire da una descrizione, analisi dei dati selezionati (con statistiche esatte), grafici e tabelle di esempio.
+- **PowerPoint**: riscrivi, correggi, accorcia o traduci il testo selezionato, crea slide da una scaletta e migliora i testi della slide selezionata.
 - **Outlook classico**: riassunto di più email selezionate e bozze di risposta (conferma, declina, chiarimenti o su misura), anche con account POP e IMAP.
 
 I testi vanno **direttamente** dal tuo PC al provider scelto: non c'è un server del progetto. Le chiavi restano sul tuo PC.
@@ -17,7 +18,7 @@ Segui la **[guida illustrata](https://pai-office-automation.github.io/personal-a
 1. Scarica `PersonalAIAssistant-<versione>-Setup.exe` dalla pagina [Releases](../../releases/latest).
 2. L'installatore non è ancora firmato: clic destro sul file → *Proprietà* → **Annulla blocco**; se compare *«Windows ha protetto il PC»* → *Ulteriori informazioni* → **Esegui comunque**.
 3. Avanti, avanti, fine. Per Word ed Excel Windows chiede **una volta** una conferma da amministratore (crea una cartella condivisa locale in sola lettura con il solo file di configurazione).
-4. In Word e in Excel, **una sola volta**: *Home → Componenti aggiuntivi → Altri componenti aggiuntivi → Cartella condivisa → Personal AI Assistant → Aggiungi*. Poi trovi la scheda **Personal AI**.
+4. In Word, Excel e PowerPoint, **una sola volta** in ciascuno: *Home → Componenti aggiuntivi → Altri componenti aggiuntivi → Cartella condivisa → Personal AI Assistant → Aggiungi*. Poi trovi la scheda **Personal AI**.
 5. Inserisci la chiave API: il pannello te la chiede al primo avvio (*Ottieni chiave* porta al sito del provider).
 
 Verifica dell'integrità del file scaricato:

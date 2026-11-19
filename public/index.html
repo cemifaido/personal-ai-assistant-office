@@ -92,6 +92,7 @@
     <div id="browser-tabs" class="browser-tabs hidden">
       <button class="tab-btn active" data-tab="word">📄 Word</button>
       <button class="tab-btn" data-tab="excel">📊 Excel</button>
+      <button class="tab-btn" data-tab="powerpoint">📽️ PowerPoint</button>
       <button class="tab-btn" data-tab="outlook">✉️ Outlook</button>
     </div>
 
@@ -180,6 +181,34 @@
           <h3>📋 Genera Dati di Esempio</h3>
           <input type="text" id="excel-data-prompt" class="input-text" placeholder="Es: 'Tabella con 5 prodotti, categorie e prezzi'" />
           <button id="btn-excel-gen-table" class="btn-secondary full-width">Inserisci Dati nel Foglio</button>
+        </div>
+      </section>
+
+      <!-- ==================== POWERPOINT PANEL ==================== -->
+      <section id="panel-powerpoint" class="host-panel hidden">
+        <div class="panel-section">
+          <h3>✍️ Testo Selezionato</h3>
+          <p class="section-desc">Seleziona del testo in una slide e scegli un'azione:</p>
+          <div class="action-grid">
+            <button class="btn-action btn-ppt-text" data-action="riscrivi"><span class="icon">✨</span><span>Riscrivi</span></button>
+            <button class="btn-action btn-ppt-text" data-action="correggi"><span class="icon">🔍</span><span>Correggi</span></button>
+            <button class="btn-action btn-ppt-text" data-action="accorcia"><span class="icon">✂️</span><span>Accorcia</span></button>
+            <button class="btn-action btn-ppt-text" data-action="traduci"><span class="icon">🌐</span><span>Traduci in Inglese</span></button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>🧩 Crea Slide da una Scaletta</h3>
+          <p class="section-desc">Descrivi la presentazione: le slide vengono aggiunte in fondo, con il tema attuale.</p>
+          <textarea id="ppt-outline-prompt" class="prompt-box" rows="3" placeholder="Es: '6 slide sul piano commerciale Q1: obiettivi, mercato, offerta, tempi, budget, prossimi passi'"></textarea>
+          <button id="btn-ppt-outline" class="btn-primary full-width">Proponi Slide</button>
+        </div>
+
+        <div class="panel-section">
+          <h3>🪄 Migliora la Slide Selezionata</h3>
+          <p class="section-desc">Riscrive tutti i testi della slide selezionata, mantenendo forme e formattazione.</p>
+          <input type="text" id="ppt-improve-prompt" class="input-text" placeholder="Facoltativo: 'più sintetica', 'tono commerciale', 'in inglese'..." />
+          <button id="btn-ppt-improve" class="btn-secondary full-width">Proponi Miglioramento</button>
         </div>
       </section>
 

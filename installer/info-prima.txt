@@ -1,10 +1,10 @@
 PERSONAL AI ASSISTANT - versione beta
 
-Assistente AI per Word, Excel e Outlook classico per Windows, con il modello che scegli tu:
+Assistente AI per Word, Excel, PowerPoint e Outlook classico per Windows, con il modello che scegli tu:
 Google Gemini, OpenAI o Anthropic Claude. Usa la TUA chiave API del provider scelto.
 
 COSA VIENE INSTALLATO (solo per il tuo utente Windows)
-- Word ed Excel: il pannello "Personal AI", caricato dal sito del progetto su GitHub Pages.
+- Word, Excel e PowerPoint: il pannello "Personal AI", caricato dal sito del progetto su GitHub Pages.
 - Outlook classico: il gruppo "Personal AI" nella scheda Home (riassunti e bozze di risposta).
 
 UNA CONFERMA DA AMMINISTRATORE (solo la prima volta su questo PC)
