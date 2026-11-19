@@ -7,15 +7,15 @@
  */
 
 const AI_CATALOG = [
-  { provider: 'gemini', id: 'gemini-3.1-flash-lite', label: '⚡ Gemini 3.1 Flash Lite (Free & Veloce)' },
-  { provider: 'gemini', id: 'gemini-3.8-flash',      label: '✨ Gemini 3.8 Flash' },
-  { provider: 'gemini', id: 'gemini-2.5-pro',        label: '🧠 Gemini 2.5 Pro' },
-  { provider: 'openai', id: 'gpt-4o-mini',           label: '🟢 GPT-4o Mini' },
-  { provider: 'openai', id: 'gpt-4o',                label: '🚀 GPT-4o' },
-  { provider: 'openai', id: 'o3-mini',               label: '💡 o3-mini (Ragionamento)' },
-  { provider: 'claude', id: 'claude-sonnet-5-5',     label: '🟠 Claude Sonnet 5.5 (Scrittura)' },
-  { provider: 'claude', id: 'claude-haiku-5-5',      label: '⚡ Claude Haiku 5.5 (Rapido)' },
-  { provider: 'claude', id: 'claude-opus-5-5',       label: '🧠 Claude Opus 5.5 (Massima qualità)' }
+  { provider: 'gemini', id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite (Free & Veloce)' },
+  { provider: 'gemini', id: 'gemini-3.8-flash',      label: 'Gemini 3.8 Flash' },
+  { provider: 'gemini', id: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro' },
+  { provider: 'openai', id: 'gpt-4o-mini',           label: 'GPT-4o Mini' },
+  { provider: 'openai', id: 'gpt-4o',                label: 'GPT-4o' },
+  { provider: 'openai', id: 'o3-mini',               label: 'o3-mini (Ragionamento)' },
+  { provider: 'claude', id: 'claude-sonnet-5-5',     label: 'Claude Sonnet 5.5 (Scrittura)' },
+  { provider: 'claude', id: 'claude-haiku-5-5',      label: 'Claude Haiku 5.5 (Rapido)' },
+  { provider: 'claude', id: 'claude-opus-5-5',       label: 'Claude Opus 5.5 (Massima qualità)' }
 ];
 
 const AI_PROVIDER_NAMES = { gemini: 'Google Gemini', openai: 'OpenAI', claude: 'Anthropic Claude' };
