@@ -1,6 +1,6 @@
 # Personal AI Assistant
 
-**Assistente AI per Word, Excel, PowerPoint e Outlook per Windows** - versione beta 0.2.0
+**Assistente AI per Word, Excel, PowerPoint e Outlook per Windows** - versione beta 0.2.1
 
 > [!IMPORTANT]
 > **Serve una tua chiave API personale.** Personal AI Assistant non funziona senza almeno una chiave API di **Google Gemini, OpenAI, Anthropic Claude, Qwen, MiniMax, DeepSeek o OpenRouter** (in Outlook anche un modello locale, senza chiave; nel pannello in via sperimentale).
@@ -29,7 +29,7 @@ Segui la **[guida illustrata](https://pai-office-automation.github.io/personal-a
 Verifica dell'integrità del file scaricato:
 
 ```powershell
-Get-FileHash .\PersonalAIAssistant-0.2.0-Setup.exe -Algorithm SHA256
+Get-FileHash .\PersonalAIAssistant-0.2.1-Setup.exe -Algorithm SHA256
 ```
 
 Il valore deve coincidere con quello pubblicato nella Release.

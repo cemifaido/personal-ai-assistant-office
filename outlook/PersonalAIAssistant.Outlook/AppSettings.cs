@@ -115,38 +115,74 @@ namespace PersonalAIAssistant
             return false;
         }
 
+        private static string BackupPath { get { return FilePath + ".bak"; } }
+        private static string TempPath { get { return FilePath + ".tmp"; } }
+
+        /// <summary>Se valorizzato, le impostazioni sono state recuperate da una copia (il file principale mancava o era danneggiato).</summary>
+        public string RecoveredFrom { get; private set; }
+
+        /// <summary>Legge un file di impostazioni; false se manca o non e' un JSON di impostazioni valido.</summary>
+        private static bool TryReadInto(AppSettings s, string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return false;
+                var data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(path, Encoding.UTF8));
+                if (data == null) return false;
+                object v;
+                if (data.TryGetValue("provider", out v) && v is string) s.Provider = (string)v;
+                if (data.TryGetValue("models", out v) && v is Dictionary<string, object>)
+                    foreach (var kv in (Dictionary<string, object>)v) s.Models[kv.Key] = Convert.ToString(kv.Value);
+                if (data.TryGetValue("urls", out v) && v is Dictionary<string, object>)
+                    foreach (var kv in (Dictionary<string, object>)v)
+                        if (ModelCatalog.IsCompatible(kv.Key)) s.BaseUrls[kv.Key] = Convert.ToString(kv.Value);
+                if (data.TryGetValue("keyApprovals", out v) && v is Dictionary<string, object>)
+                    foreach (var kv in (Dictionary<string, object>)v) s.KeyApprovals[kv.Key] = Convert.ToString(kv.Value);
+                if (data.TryGetValue("keys", out v) && v is Dictionary<string, object>)
+                    foreach (var kv in (Dictionary<string, object>)v) s.protectedKeys[kv.Key] = Convert.ToString(kv.Value);
+                return true;
+            }
+            catch { return false; }
+        }
+
         public static AppSettings Load()
         {
             var s = new AppSettings();
-            try
+            bool mainExists = File.Exists(FilePath);
+            if (!TryReadInto(s, FilePath))
             {
-                if (File.Exists(FilePath))
+                // Un file principale danneggiato si mette da parte (mai sovrascritto) per un recupero manuale.
+                if (mainExists)
                 {
-                    var data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(FilePath, Encoding.UTF8));
-                    object v;
-                    if (data.TryGetValue("provider", out v) && v is string) s.Provider = (string)v;
-                    if (data.TryGetValue("models", out v) && v is Dictionary<string, object>)
-                        foreach (var kv in (Dictionary<string, object>)v) s.Models[kv.Key] = Convert.ToString(kv.Value);
-                    if (data.TryGetValue("urls", out v) && v is Dictionary<string, object>)
-                        foreach (var kv in (Dictionary<string, object>)v)
-                            if (ModelCatalog.IsCompatible(kv.Key)) s.BaseUrls[kv.Key] = Convert.ToString(kv.Value);
-                    if (data.TryGetValue("keyApprovals", out v) && v is Dictionary<string, object>)
-                        foreach (var kv in (Dictionary<string, object>)v) s.KeyApprovals[kv.Key] = Convert.ToString(kv.Value);
-                    if (data.TryGetValue("keys", out v) && v is Dictionary<string, object>)
-                        foreach (var kv in (Dictionary<string, object>)v) s.protectedKeys[kv.Key] = Convert.ToString(kv.Value);
+                    try { File.Copy(FilePath, Path.Combine(FolderPath, "outlook-settings.danneggiato-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json"), false); }
+                    catch { }
                 }
+                // Copie di riserva: backup dell'ultimo salvataggio, poi il temporaneo di un salvataggio interrotto.
+                s = new AppSettings();
+                if (TryReadInto(s, BackupPath)) s.RecoveredFrom = "copia di backup";
                 else
                 {
-                    s.ImportFromLegacyMacro();
+                    s = new AppSettings();
+                    if (TryReadInto(s, TempPath)) s.RecoveredFrom = "salvataggio interrotto";
+                    else
+                    {
+                        s = new AppSettings();
+                        if (!mainExists) { try { s.ImportFromLegacyMacro(); } catch { } }
+                    }
                 }
             }
-            catch { /* file danneggiato: si riparte dalle impostazioni predefinite */ }
             // A ogni caricamento: se restano valori della vecchia macro gia' importati, si ritenta la pulizia.
+            // (Rilegge il file principale: se le impostazioni sono state recuperate da una copia non cancella nulla.)
             s.CleanLegacyMacro();
             if (!ModelCatalog.ProviderNames.ContainsKey(s.Provider)) s.Provider = "gemini";
             return s;
         }
 
+        /// <summary>
+        /// Salvataggio senza finestre di perdita: scrive un temporaneo, lo rilegge per verificarlo, poi sostituisce
+        /// il file principale con File.Replace (che conserva la versione precedente come .bak). In nessun momento
+        /// manca una copia valida delle impostazioni. Lancia un'eccezione se non riesce: il chiamante la mostra.
+        /// </summary>
         public void Save()
         {
             Directory.CreateDirectory(FolderPath);
@@ -159,10 +195,17 @@ namespace PersonalAIAssistant
                 { "keyApprovals", KeyApprovals },
                 { "keys", protectedKeys },
             };
-            var tmp = FilePath + ".tmp";
-            File.WriteAllText(tmp, new JavaScriptSerializer().Serialize(data), Encoding.UTF8);
-            if (File.Exists(FilePath)) File.Delete(FilePath);
-            File.Move(tmp, FilePath);
+            var bytes = new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(data));
+            using (var fs = new FileStream(TempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+            {
+                fs.Write(bytes, 0, bytes.Length);
+                fs.Flush(true);
+            }
+            if (!TryReadInto(new AppSettings(), TempPath))
+                throw new IOException("Verifica del file delle impostazioni non riuscita: le impostazioni precedenti restano invariate.");
+            if (File.Exists(FilePath)) File.Replace(TempPath, FilePath, BackupPath, true);
+            else File.Move(TempPath, FilePath);
+            RecoveredFrom = null;
         }
 
         /// <summary>

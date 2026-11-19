@@ -47,7 +47,10 @@ namespace PersonalAIAssistant
         {
             var s = AppSettings.Load();
             string intro = null;
-            if (s.ImportSaveFailed)
+            if (s.RecoveredFrom != null)
+                intro = "Il file delle impostazioni mancava o era danneggiato: le ho recuperate dalla " + s.RecoveredFrom +
+                        ". Controlla che siano corrette e premi Salva.";
+            else if (s.ImportSaveFailed)
                 intro = "Attenzione: non sono riuscito a salvare la copia cifrata delle chiavi della vecchia macro, " +
                         "quindi le ho lasciate nel registro (in chiaro) per non perderle. Reinseriscile qui e premi Salva: " +
                         "al prossimo avvio le rimuovero' dal registro.";

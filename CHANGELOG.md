@@ -2,6 +2,21 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/); versioni secondo [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.2.1] - beta - in preparazione
+
+Interventi di affidabilita' proposti nella revisione dell'architettura (Codex) e modello locale nel pannello.
+
+### Aggiunto
+- **Pannello: modello locale (sperimentale)**, provato in Word con llama-server sullo stesso PC.
+- Il pannello mostra versione e commit pubblicato (es. `v0.2.1 · 1a2b3c4d`).
+- Procedura documentata per tornare a una versione precedente del pannello e tabella delle versioni dei componenti (`docs/SVILUPPO.md`).
+
+### Corretto
+- **Outlook: salvataggio delle impostazioni senza finestre di perdita.** Prima il file veniva cancellato e poi sostituito: un errore in mezzo lasciava senza impostazioni (chiavi comprese). Ora il nuovo file viene scritto, riletto e verificato, poi sostituito con `File.Replace` conservando la versione precedente come copia di backup. Al caricamento, se il file manca o e' danneggiato, le impostazioni vengono recuperate dalla copia di backup (o da un salvataggio interrotto) e le Impostazioni lo segnalano; un file danneggiato viene messo da parte, mai sovrascritto.
+
+### Sicurezza
+- Pubblicazione del pannello: i test automatici e i controlli di sintassi e del manifest sono obbligatori prima del deploy, che pubblica esattamente il pacchetto verificato; action fissate a SHA.
+
 ## [0.2.0] - beta - 2026-11-19
 
 ### Aggiunto

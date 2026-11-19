@@ -1,7 +1,7 @@
 <#
   Personal AI Assistant - build della release Windows.
 
-    powershell -ExecutionPolicy Bypass -File .\build.ps1 [-Versione 0.2.0] [-BaseUrl https://...]
+    powershell -ExecutionPolicy Bypass -File .\build.ps1 [-Versione 0.2.1] [-BaseUrl https://...]
 
   Passi: compila l'add-in Outlook (MSBuild + VSTO, manifest firmati con il certificato
   "CN=Personal AI Assistant" dell'utente corrente), genera il manifest Word/Excel dal modello,
@@ -9,7 +9,7 @@
   e scrive l'impronta SHA-256 in release\SHA256SUMS.txt.
 #>
 param(
-  [string]$Versione = '0.2.0',
+  [string]$Versione = '0.2.1',
   # Unico punto con gli indirizzi del progetto (sito GitHub Pages e repository).
   [string]$BaseUrl = 'https://pai-office-automation.github.io/personal-ai-assistant-office',
   [string]$RepoUrl = 'https://github.com/pai-office-automation/personal-ai-assistant-office'

@@ -115,7 +115,7 @@ class AIError extends Error {
   }
 }
 
-const PAA_VERSION = '0.2.0';
+const PAA_VERSION = '0.2.1';
 
 // Chiavi salvate con un prefisso dell'app (prima: "<provider>_api_key", nomi generici).
 const AI_KEY_PREFIX = 'paa.key.';

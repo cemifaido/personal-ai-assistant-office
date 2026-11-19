@@ -1,42 +1,70 @@
-# Pubblica SOLO la cartella public/ su GitHub Pages a ogni push su main,
-# insieme al manifest Word/Excel generato dal modello con l'indirizzo reale del sito.
+# Pubblica SOLO la cartella public/ su GitHub Pages a ogni push su main, insieme al manifest Word/Excel
+# generato dal modello con l'indirizzo reale del sito.
+# Due job: "verifica" esegue test e controlli e prepara il pacchetto; "pubblica" parte solo se la verifica
+# e' passata e pubblica esattamente quel pacchetto. Action fissate a commit (SHA).
+# Ripristino di una versione precedente: vedi docs/SVILUPPO.md ("Tornare a una versione precedente del pannello").
 name: Pubblica pannello
 on:
   push:
     branches: [main]
-    paths: ['public/**', 'manifest-word-excel.template.xml', '.github/workflows/pages.yml']
+    paths: ['public/**', 'tests/**', 'scripts/**', 'manifest-word-excel.template.xml', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  verifica:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020   # v4
+        with:
+          node-version: '22'
+      - name: Sintassi JavaScript
+        run: for f in public/*.js scripts/*.cjs tests/*.cjs; do node --check "$f"; done
+      - name: Test automatici
+        run: node --test tests/*.test.cjs
       - id: pages
-        uses: actions/configure-pages@v5
-      - name: Versione nei riferimenti (evita la cache del pannello)
-        run: sed -i "s/__VERSION__/${GITHUB_SHA::8}/g" public/index.html
-      - name: Genera il manifest Word/Excel con l'indirizzo del sito
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b   # v5
+      - name: Versione e commit nei riferimenti (evita la cache e identifica il pannello)
+        run: |
+          sed -i "s/__VERSION__/${GITHUB_SHA::8}/g" public/index.html
+          if grep -q "__VERSION__" public/index.html; then echo "segnaposto di versione non sostituito" >&2; exit 1; fi
+      - name: Genera e valida il manifest Word/Excel con l'indirizzo del sito
         env:
           BASE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           sed "s#__BASE_URL__#${BASE_URL%/}#g" manifest-word-excel.template.xml > public/manifest.xml
           if grep -q "__BASE_URL__" public/manifest.xml; then echo "segnaposto non sostituito" >&2; exit 1; fi
-          python3 -c "import xml.dom.minidom,sys; xml.dom.minidom.parse('public/manifest.xml')"
-      - uses: actions/upload-pages-artifact@v3
+          python3 - <<'EOF'
+          import xml.dom.minidom, sys
+          d = xml.dom.minidom.parse('public/manifest.xml')
+          ns = 'http://schemas.microsoft.com/office/appforoffice/1.1'
+          ver = d.getElementsByTagNameNS(ns, 'Version')[0].firstChild.data
+          src = d.getElementsByTagNameNS(ns, 'SourceLocation')[0].getAttribute('DefaultValue')
+          assert src.startswith('https://') and src.endswith('/index.html'), src
+          print('manifest', ver, src)
+          EOF
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa   # v3
         with:
           path: public
+
+  pubblica:
+    needs: verifica
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e   # v4

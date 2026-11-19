@@ -38,7 +38,11 @@ Office.onReady((info) => {
   initEventListeners();
   loadSavedKeys();
   updateKeyBadges();
-  document.getElementById('app-version').textContent = `v${PAA_VERSION}`;
+  // Versione del pannello e commit pubblicato (utile per segnalazioni e ripristini).
+  const build = document.querySelector('meta[name="paa-build"]')?.content || '';
+  const versionEl = document.getElementById('app-version');
+  versionEl.textContent = `v${PAA_VERSION}` + (/^[0-9a-f]{8}$/.test(build) ? ` · ${build}` : '');
+  versionEl.title = /^[0-9a-f]{8}$/.test(build) ? `Pannello pubblicato dal commit ${build}` : 'Versione di sviluppo';
   showOnboardingIfNeeded();
   const stuck = aiLegacyNotRemoved();
   if (stuck.length) {

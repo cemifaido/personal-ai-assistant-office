@@ -56,9 +56,46 @@ I manifest VSTO devono essere firmati. Si usa un certificato del progetto, `CN=P
 
 ## Pubblicazione
 
-1. `public/` si pubblica da solo a ogni push su `main` (workflow Pages).
+1. `public/` si pubblica da solo a ogni push su `main` (workflow *Pubblica pannello*): prima il job **verifica**
+   (sintassi JavaScript, `node --test tests/*.test.cjs`, manifest generato e validato), poi il job **pubblica**, che
+   parte solo se la verifica è passata e pubblica esattamente il pacchetto verificato.
 2. La release si crea a mano su GitHub con il Setup e lo SHA-256 da `release\`.
 3. Aggiornare la data e la versione in `CHANGELOG.md`.
+
+Il pannello mostra in basso versione e commit pubblicato (es. `v0.2.1 · 1a2b3c4d`): è il riferimento da chiedere
+in caso di segnalazione.
+
+### Versioni dei componenti
+
+I componenti avanzano separatamente; la compatibilità è questa:
+
+| Componente | Dove si aggiorna | Versione attuale | Note |
+|---|---|---|---|
+| Pannello Word/Excel/PowerPoint | Pages, a ogni push (tutti gli utenti alla prossima apertura) | `PAA_VERSION` in `public/ai.js` + commit | Funziona con qualsiasi manifest `0.1.0.0` |
+| Manifest Word/Excel/PowerPoint | Setup (cartella condivisa) | `0.1.0.0` | Cambiarlo solo se serve: richiede di nuovo la conferma da amministratore |
+| Add-in Outlook | Setup | uguale al programma | Indipendente dal pannello |
+| Installatore | Release | uguale al programma | |
+
+Il pannello deve restare compatibile con i manifest già installati: un'aggiunta che richieda un manifest nuovo va
+pubblicata insieme a un nuovo Setup.
+
+### Tornare a una versione precedente del pannello
+
+Il pannello pubblicato arriva subito a tutti: se una pubblicazione introduce un problema, si ripristina così.
+
+1. Individuare il commit difettoso (il pannello lo mostra in basso; `git log -- public/`).
+2. Annullarlo con un nuovo commit, senza riscrivere la storia (il ramo `main` è protetto):
+   ```
+   git revert <commit>
+   git push origin main
+   ```
+3. Il workflow rifà la verifica e ripubblica il pannello precedente (circa un minuto). Controllare online il commit
+   mostrato dal pannello o il contenuto di `ai.js`.
+4. Se il problema era in una Release (Outlook o installatore), segnarla come non consigliata nelle note e ripubblicare
+   la Release precedente come *latest*; i Setup restano scaricabili dalla pagina delle Release.
+
+La cronologia delle pubblicazioni del pannello è nella scheda *Actions* (workflow *Pubblica pannello*) e
+nell'ambiente *github-pages* del repository.
 
 ## Prove manuali prima di una release
 
