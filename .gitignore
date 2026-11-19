@@ -7,3 +7,24 @@ _obsoleto/certs/
 
 # Generato da installa.ps1 (contiene l'URL locale di pubblicazione)
 manifest/
+
+# File dell'Orchestratore LLM (dati/config locali, il codice resta centrale)
+dati_locali/orchestrazione/
+schema/evento.v1.json
+schema/compito.v1.json
+config/comandi.json
+config/comandi.esempio.json
+
+# Istruzioni per assistenti AI (sincronizzazione multi-agente via registro):
+# locali per operatore/macchina, non condivise nel repository.
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+AGENTS.codex.md
+AGENTS.override.md
+
+# Spike: output di compilazione e installatori
+spike/**/bin/
+spike/**/obj/
+spike/**/out/
+*.user
