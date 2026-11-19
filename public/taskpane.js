@@ -242,6 +242,7 @@ function initEventListeners() {
   document.getElementById('btn-excel-gen-formula').addEventListener('click', handleExcelFormula);
   document.getElementById('btn-excel-analyze-range').addEventListener('click', handleExcelAnalyzeRange);
   document.getElementById('btn-excel-gen-table').addEventListener('click', handleExcelGenTable);
+  document.getElementById('btn-excel-chart').addEventListener('click', handleExcelChart);
 
   // Outlook (solo account che supportano gli add-in web; per POP usare la macro VBA)
   document.getElementById('btn-outlook-read').addEventListener('click', loadOutlookData);
@@ -309,7 +310,11 @@ async function runAI(loaderText, { prompt, context, system, kind = 'text' }) {
   currentAbort = new AbortController();
   setLoader(true, `${loaderText} (${AI_PROVIDER_NAMES[provider]})`);
   try {
-    const result = await aiCall({ provider, model, prompt, context, system, signal: currentAbort.signal });
+    let result = await aiCall({ provider, model, prompt, context, system, signal: currentAbort.signal });
+    if (kind === 'chart') {
+      lastChartSpec = parseChartSpec(result.text); // valida prima di mostrare
+      result = { ...result, text: describeChartSpec(lastChartSpec) };
+    }
     displayResult(result, kind);
   } catch (err) {
     notify(err.message, 'error');
@@ -645,6 +650,169 @@ Numeri senza separatore delle migliaia e con il punto come separatore decimale. 
   });
 }
 
+/* ---------- Grafici ---------- */
+
+const CHART_TYPES = {
+  colonne: 'ColumnClustered', barre: 'BarClustered', linee: 'Line', torta: 'Pie',
+  anello: 'Doughnut', area: 'Area', dispersione: 'XYScatter'
+};
+const CHART_MODES = ['intervalli', 'conteggio', 'somma', 'media'];
+const CHART_DATA_SHEET = 'Dati grafici PAI';
+const CHART_MAX_POINTS = 2000;
+const CHART_MAX_GROUPS = 20; // oltre, le categorie minori finiscono in "Altri"
+let lastChartSpec = null;
+
+async function handleExcelChart() {
+  const request = document.getElementById('excel-chart-prompt').value.trim() ||
+    'Crea il grafico più adatto ai dati selezionati.';
+  let context;
+  try {
+    if (typeof Excel !== 'undefined') {
+      const overview = await readExcelOverview();
+      const selection = await Excel.run(async (ctx) => {
+        const sel = ctx.workbook.getSelectedRange();
+        sel.load('address');
+        await ctx.sync();
+        return sel.address.replace(/^.*!/, '');
+      });
+      context = `${overview}\nSelezione attuale: ${selection}`;
+    } else {
+      context = 'Foglio: "Prova"\nArea dati: A1:C4\nColonne:\nA = "Mese" — testo\nB = "Vendite" — numero\nC = "Costi" — numero\nSelezione attuale: A1:C4';
+    }
+  } catch (err) {
+    notify(excelErrorMessage(err), 'error');
+    return;
+  }
+  return runAI('Proposta di grafico', {
+    prompt: `L'utente vuole un grafico Excel: "${request}".
+Rispondi SOLO con un oggetto JSON valido, senza altro testo, con questi campi:
+{"tipo": uno tra ${Object.keys(CHART_TYPES).map(t => `"${t}"`).join(', ')},
+ "titolo": "titolo breve",
+ "modo": "intervalli" se i valori da disegnare sono già nelle celle; "conteggio" per contare quante righe ci sono per ogni categoria; "somma" o "media" per aggregare una colonna numerica per categoria,
+ "categorie": intervallo della colonna delle etichette SENZA intestazione (es. "A2:A41"), oppure "" se non servono,
+ "valori": elenco di intervalli numerici SENZA intestazione (es. ["F2:F41"]); per "conteggio" usa [],
+ "nomiSerie": elenco dei nomi delle serie, uno per ogni intervallo di "valori" (per conteggio/somma/media un solo nome),
+ "spiegazione": "una frase su cosa mostra il grafico"}
+Regole: ogni intervallo è UNA sola colonna, con le stesse righe delle categorie; usa le colonne reali del contesto e i dati della selezione se pertinenti; "torta" e "anello" con una sola serie.`,
+    context,
+    system: 'Sei un esperto di Microsoft Excel e di visualizzazione dei dati. Rispondi solo con JSON.',
+    kind: 'chart'
+  });
+}
+
+/** Valida la proposta del modello. Restituisce lo spec normalizzato oppure lancia un errore leggibile. */
+function parseChartSpec(text) {
+  const m = String(text).match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('Il modello non ha proposto un grafico valido: riprova descrivendolo meglio.');
+  let s;
+  try { s = JSON.parse(m[0]); } catch (e) { throw new Error('Proposta di grafico non leggibile: riprova.'); }
+  const cell = '\\$?[A-Z]{1,3}\\$?\\d{1,7}';
+  const rangeRe = new RegExp(`^${cell}:${cell}$`, 'i');
+  const tipo = String(s.tipo || '').toLowerCase();
+  const modo = String(s.modo || 'intervalli').toLowerCase();
+  if (!CHART_TYPES[tipo]) throw new Error(`Tipo di grafico non supportato: ${s.tipo}`);
+  if (!CHART_MODES.includes(modo)) throw new Error(`Modo non supportato: ${s.modo}`);
+  const categorie = String(s.categorie || '').trim();
+  const valori = (Array.isArray(s.valori) ? s.valori : [s.valori]).filter(Boolean).map(v => String(v).trim());
+  if (categorie && !rangeRe.test(categorie)) throw new Error(`Intervallo categorie non valido: ${categorie}`);
+  for (const v of valori) if (!rangeRe.test(v)) throw new Error(`Intervallo valori non valido: ${v}`);
+  if (modo === 'intervalli' && valori.length === 0) throw new Error('La proposta non indica i valori da disegnare.');
+  if (modo !== 'intervalli' && !categorie) throw new Error('Per contare o aggregare serve la colonna delle categorie.');
+  if ((modo === 'somma' || modo === 'media') && valori.length !== 1) throw new Error('Per somma o media serve una sola colonna di valori.');
+  if ((tipo === 'torta' || tipo === 'anello') && valori.length > 1) throw new Error('Torta e anello ammettono una sola serie.');
+  const nomi = Array.isArray(s.nomiSerie) ? s.nomiSerie.map(String) : [];
+  return {
+    tipo, modo, categorie, valori: modo === 'conteggio' ? [] : valori,
+    titolo: String(s.titolo || '').slice(0, 120),
+    nomiSerie: nomi,
+    spiegazione: String(s.spiegazione || '')
+  };
+}
+
+function describeChartSpec(s) {
+  const modi = { intervalli: 'valori presi dalle celle', conteggio: 'conteggio delle righe per categoria',
+                 somma: 'somma per categoria', media: 'media per categoria' };
+  return `Grafico proposto: ${s.tipo} — "${s.titolo}"\n` +
+    `Dati: ${modi[s.modo]}` + (s.categorie ? `, categorie ${s.categorie}` : '') +
+    (s.valori.length ? `, valori ${s.valori.join(', ')}` : '') + '\n' +
+    (s.modo !== 'intervalli' ? `I numeri vengono calcolati dal pannello e scritti nel foglio "${CHART_DATA_SHEET}".\n` : '') +
+    (s.spiegazione ? `\n${s.spiegazione}\n` : '') +
+    '\nPremi "Inserisci" per creare il grafico.';
+}
+
+async function insertChart(spec) {
+  await Excel.run(async (ctx) => {
+    const sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    const used = sheet.getUsedRange(true);
+    used.load(['rowIndex', 'columnIndex', 'columnCount']);
+    sheet.load('name');
+
+    let catRange = spec.categorie ? sheet.getRange(spec.categorie) : null;
+    let valRanges = spec.valori.map(a => sheet.getRange(a));
+    if (catRange) catRange.load(['rowCount', 'columnCount', 'values']);
+    valRanges.forEach(r => r.load(['rowCount', 'columnCount', 'values']));
+    await ctx.sync();
+
+    const all = (catRange ? [catRange] : []).concat(valRanges);
+    if (all.some(r => r.columnCount !== 1)) throw new Error('Ogni intervallo del grafico deve essere una sola colonna.');
+    const rows = all[0].rowCount;
+    if (all.some(r => r.rowCount !== rows)) throw new Error('Categorie e valori hanno un numero di righe diverso.');
+    if (rows > CHART_MAX_POINTS) throw new Error(`Troppi punti (${rows}): seleziona meno righe o chiedi un aggregato.`);
+
+    let note = '';
+    if (spec.modo !== 'intervalli') {
+      // Aggregazione esatta fatta qui, non dal modello.
+      const groups = new Map();
+      catRange.values.forEach((r, i) => {
+        const k = String(r[0] ?? '').trim() || '(vuoto)';
+        const v = spec.modo === 'conteggio' ? 1 : valRanges[0].values[i][0];
+        if (spec.modo !== 'conteggio' && typeof v !== 'number') return;
+        const g = groups.get(k) || { sum: 0, n: 0 };
+        g.sum += v; g.n += 1; groups.set(k, g);
+      });
+      let table = [...groups.entries()].map(([k, g]) => [k, spec.modo === 'media' ? g.sum / g.n : g.sum]);
+      table.sort((a, b) => b[1] - a[1]);
+      if (table.length > CHART_MAX_GROUPS && spec.modo !== 'media') {
+        const rest = table.slice(CHART_MAX_GROUPS - 1).reduce((s, r) => s + r[1], 0);
+        table = table.slice(0, CHART_MAX_GROUPS - 1).concat([['Altri', rest]]);
+        note = ` Le categorie oltre le prime ${CHART_MAX_GROUPS - 1} sono raggruppate in "Altri".`;
+      }
+      if (!table.length) throw new Error('Nessun dato numerico da aggregare.');
+
+      let dataSheet = ctx.workbook.worksheets.getItemOrNullObject(CHART_DATA_SHEET);
+      await ctx.sync();
+      if (dataSheet.isNullObject) dataSheet = ctx.workbook.worksheets.add(CHART_DATA_SHEET);
+      const dUsed = dataSheet.getUsedRangeOrNullObject(true);
+      dUsed.load(['rowIndex', 'rowCount']);
+      await ctx.sync();
+      const start = dUsed.isNullObject ? 0 : dUsed.rowIndex + dUsed.rowCount + 1;
+      const label = spec.nomiSerie[0] || (spec.modo === 'conteggio' ? 'Conteggio' : spec.modo === 'somma' ? 'Somma' : 'Media');
+      dataSheet.getRangeByIndexes(start, 0, 1, 2).values = [[spec.titolo || 'Grafico', label]];
+      dataSheet.getRangeByIndexes(start + 1, 0, table.length, 2).values = table;
+      catRange = dataSheet.getRangeByIndexes(start + 1, 0, table.length, 1);
+      valRanges = [dataSheet.getRangeByIndexes(start + 1, 1, table.length, 1)];
+      spec = { ...spec, nomiSerie: [label] };
+      note = ` Dati calcolati nel foglio "${CHART_DATA_SHEET}".` + note;
+    }
+
+    const chart = sheet.charts.add(CHART_TYPES[spec.tipo], valRanges[0], Excel.ChartSeriesBy.columns);
+    chart.title.text = spec.titolo || '';
+    const first = chart.series.getItemAt(0);
+    first.name = spec.nomiSerie[0] || '';
+    if (catRange) first.setXAxisValues(catRange);
+    for (let i = 1; i < valRanges.length; i++) {
+      const s = chart.series.add(spec.nomiSerie[i] || `Serie ${i + 1}`);
+      s.setValues(valRanges[i]);
+      if (catRange) s.setXAxisValues(catRange);
+    }
+    if (spec.tipo === 'torta' || spec.tipo === 'anello') chart.dataLabels.showPercentage = true;
+    // A destra dei dati, senza coprirli.
+    chart.setPosition(`${colLetter(used.columnIndex + used.columnCount + 1)}${used.rowIndex + 2}`);
+    await ctx.sync();
+    notify(`Grafico inserito nel foglio "${sheet.name}".${note}`, 'success');
+  });
+}
+
 /** Converte il testo del modello in una matrice rettangolare. Restituisce null se non è una tabella. */
 function parseTable(text) {
   const lines = text.replace(/\r/g, '').split('\n').map(l => l.trimEnd()).filter(l => l.trim() !== '');
@@ -684,6 +852,11 @@ function confirmOverwrite(address, occupied, content) {
 
 /** Applica il risultato in Excel secondo il tipo deciso dal pulsante che l'ha generato. */
 async function applyToExcel(text) {
+  if (lastResultKind === 'chart') {
+    if (!lastChartSpec) { notify('Nessun grafico proposto: premi "Proponi Grafico".', 'warn'); return; }
+    await insertChart(lastChartSpec);
+    return;
+  }
   await Excel.run(async (context) => {
     if (lastResultKind === 'formula') {
       const formulaMatch = text.match(/FORMULA:\s*`*(=[^\r\n`]+)/i);
