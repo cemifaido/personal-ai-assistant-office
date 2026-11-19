@@ -44,6 +44,19 @@ New-Item $release -ItemType Directory -Force | Out-Null
 Step "Compilazione add-in Outlook"
 & $msbuild $proj /t:Rebuild /p:Configuration=Release /p:VisualStudioVersion=18.0 /nologo /v:minimal
 if ($LASTEXITCODE -ne 0) { throw 'Compilazione add-in Outlook non riuscita.' }
+
+# La compilazione VSTO registra l'add-in per chi compila, puntando alla cartella bin del repository
+# e con lo stesso nome usato dal Setup. Si annulla: Outlook deve usare la copia installata, se c'e'.
+$addinKey = 'HKCU:\Software\Microsoft\Office\Outlook\Addins\PersonalAIAssistant.Outlook'
+$installed = Join-Path $env:LOCALAPPDATA 'Programs\PersonalAIAssistant\Outlook\PersonalAIAssistant.Outlook.vsto'
+$m = (Get-ItemProperty $addinKey -ErrorAction SilentlyContinue).Manifest
+if ($m -and $m -like "*$($root.Replace('\','/'))*") {
+  if (Test-Path $installed) { Set-ItemProperty $addinKey -Name Manifest -Value ('file:///' + $installed.Replace('\','/') + '|vstolocal'); Write-Host '   registrazione Outlook riportata alla copia installata' }
+  else { Remove-Item $addinKey -Recurse -Force; Write-Host '   registrazione di sviluppo di Outlook rimossa' }
+}
+Get-ChildItem 'HKCU:\Software\Microsoft\VSTO\Security\Inclusion' -ErrorAction SilentlyContinue | Where-Object {
+  (Get-ItemProperty $_.PSPath).Url -like "*$($root.Replace('\','/'))*" } | Remove-Item -Recurse -Force
+
 $bin = Join-Path (Split-Path $proj) 'bin\Release'
 Copy-Item "$bin\PersonalAIAssistant.Outlook.dll", "$bin\PersonalAIAssistant.Outlook.dll.manifest", "$bin\PersonalAIAssistant.Outlook.vsto",
           "$bin\Microsoft.Office.Tools.Common.v4.0.Utilities.dll", "$bin\Microsoft.Office.Tools.Outlook.v4.0.Utilities.dll" "$build\outlook\"
