@@ -42,6 +42,7 @@ const AI_KEY_PREFIX = 'paa.key.';
 
 // Chiavi "solo per questa sessione": restano in memoria finche' il pannello e' aperto, mai su disco.
 const aiSessionKeys = {};
+const aiLegacyStuck = new Set();
 const AI_PERSIST_PREF = 'paa.persist';
 const AI_PROVIDERS = ['gemini', 'openai', 'claude'];
 
@@ -63,6 +64,8 @@ function aiGetKey(provider) {
 
 /** Dove si trova la chiave: 'salvata' (su questo PC), 'sessione' (solo in memoria) o '' (nessuna). */
 function aiKeyStorage(provider) {
+  // Una copia della versione di prova rimasta su disco rende la chiave "salvata", anche se in uso e' quella in memoria.
+  if (aiLegacyStuck.has(provider)) return 'salvata';
   if (aiSessionKeys[provider]) return 'sessione';
   return aiStoredKey(provider) ? 'salvata' : '';
 }
@@ -83,6 +86,7 @@ function aiSetKey(provider, value) {
   // Si rimuovono sia il nome attuale sia quello delle versioni di prova: nessuna copia puo' tornare alla riapertura.
   const removedCurrent = aiRemoveStored(AI_KEY_PREFIX + provider);
   const removedLegacy = aiRemoveStored(`${provider}_api_key`);
+  if (removedLegacy) aiLegacyStuck.delete(provider); else aiLegacyStuck.add(provider);
   const removed = removedCurrent && removedLegacy;
   if (!value) return removed;
   if (aiPersistChoice) {
@@ -104,7 +108,11 @@ function aiSetPersist(persist) {
   return ok;
 }
 
+/** Provider la cui copia della versione di prova non e' stata rimossa dal disco (da segnalare all'avvio). */
+function aiLegacyNotRemoved() { return [...aiLegacyStuck]; }
+
 // Migrazione una tantum dai nomi usati fino alla versione di prova: rispetta la scelta "solo sessione".
+// Se la vecchia copia non si rimuove l'esito resta incerto: la chiave risulta "salvata" e il pannello avvisa.
 (function aiMigrateStorage() {
   for (const p of AI_PROVIDERS) {
     let old = null;
@@ -113,7 +121,7 @@ function aiSetPersist(persist) {
       if (aiPersistChoice) { try { localStorage.setItem(AI_KEY_PREFIX + p, old); } catch (e) { aiSessionKeys[p] = old; } }
       else aiSessionKeys[p] = old;
     }
-    aiRemoveStored(`${p}_api_key`);
+    if (old && !aiRemoveStored(`${p}_api_key`)) aiLegacyStuck.add(p);
   }
   try {
     const oldModel = localStorage.getItem('active_model_spec');

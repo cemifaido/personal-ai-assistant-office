@@ -40,6 +40,12 @@ Office.onReady((info) => {
   updateKeyBadges();
   document.getElementById('app-version').textContent = `v${PAA_VERSION}`;
   showOnboardingIfNeeded();
+  const stuck = aiLegacyNotRemoved();
+  if (stuck.length) {
+    notify(`Una copia della chiave di ${stuck.map(p => AI_PROVIDER_NAMES[p]).join(', ')} salvata da una versione precedente ` +
+           'è ancora su questo PC e non sono riuscito a rimuoverla. Apri le impostazioni e usa "Cancella"; ' +
+           'se il messaggio resta, revoca la chiave dal sito del provider.', 'error');
+  }
 });
 
 /** Primo avvio: nessuna chiave salvata → impostazioni aperte con istruzioni. */
