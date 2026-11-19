@@ -15,7 +15,7 @@ function setup(responses) {
   };
   const context = vm.createContext({
     localStorage: { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, v), removeItem: k => data.delete(k) },
-    fetch, setTimeout, clearTimeout, AbortController
+    fetch, setTimeout, clearTimeout, AbortController, URL
   });
   vm.runInContext(source, context);
   return { calls, run: s => vm.runInContext(s, context) };
@@ -69,7 +69,7 @@ test('risposta troncata segnalata', async () => {
 
 test('nuovi provider nella gestione chiavi e conferma per quelli con sede in Cina', () => {
   const s = setup([]);
-  assert.deepEqual([...s.run('AI_PROVIDERS')], ['gemini', 'openai', 'claude', 'qwen', 'minimax', 'deepseek', 'openrouter']);
+  assert.deepEqual([...s.run('AI_PROVIDERS')], ['gemini', 'openai', 'claude', 'qwen', 'minimax', 'deepseek', 'openrouter', 'locale']);
   assert.deepEqual(Object.keys(s.run('AI_CHINA_PROVIDERS')), ['qwen', 'minimax', 'deepseek']);
   assert.equal(s.run("aiSetKey('openrouter','fake'); aiKeyStorage('openrouter')"), 'salvata');
   for (const p of ['qwen', 'minimax', 'deepseek', 'openrouter'])
@@ -84,4 +84,36 @@ test('pannello: campi chiave, link e conferma presenti in index.html', () => {
   }
   assert.match(html, /id="china-confirm"/);
   assert.match(html, /id="custom-model-row"/);
+});
+
+test('modello locale: solo questo PC o IP privati, nessun nome; normalizzazione', () => {
+  const s = setup([]);
+  const n = u => s.run(`aiNormalizeLocalUrl(${JSON.stringify(u)})`);
+  assert.equal(n('http://127.0.0.1:8090/v1/chat/completions'), 'http://127.0.0.1:8090/v1');
+  assert.equal(n('http://localhost:11434/v1/'), 'http://localhost:11434/v1');
+  assert.equal(n('https://192.168.1.20:8080/v1'), 'https://192.168.1.20:8080/v1');
+  assert.equal(n('http://[fd00::5]:8080/v1'), 'http://[fd00::5]:8080/v1');
+  for (const bad of ['http://com:8080/v1', 'http://server-ai:8080/v1', 'http://8.8.8.8/v1', 'https://evil.example/v1',
+                     'http://172.32.0.1/v1', 'http://user:pw@127.0.0.1/v1', 'ftp://127.0.0.1/v1', 'http://127.0.0.1/v1?x=1'])
+    assert.equal(n(bad), null, bad);
+});
+
+test('modello locale: nessuna chiave richiesta, nessuna intestazione Authorization, niente redirect', async () => {
+  const s = setup([ok('Ciao')]);
+  await assert.rejects(s.run("aiCall({ provider: 'locale', model: 'm', prompt: 'x' })"), /indirizzo del modello locale/);
+  assert.equal(s.run("aiSetLocalUrl('http://127.0.0.1:8090/v1')"), true);
+  assert.equal(s.run("aiSetLocalUrl('http://com:8080/v1')"), false);
+  assert.equal(s.run("aiProviderReady('locale')"), true);
+  const r = await s.run("aiCall({ provider: 'locale', model: 'Qwen3.5-4B', prompt: 'ciao' })");
+  assert.equal(r.text, 'Ciao');
+  assert.equal(s.calls[0].url, 'http://127.0.0.1:8090/v1/chat/completions');
+  assert.equal(s.calls[0].init.headers.authorization, undefined);
+  assert.equal(s.calls[0].init.redirect, 'error');
+});
+
+test('modello locale: errore di rete spiegato', async () => {
+  const s = setup([]);
+  s.run("aiSetLocalUrl('http://127.0.0.1:8090/v1')");
+  s.run("fetch = async () => { throw new TypeError('Failed to fetch'); }");
+  await assert.rejects(s.run("aiCall({ provider: 'locale', model: 'm', prompt: 'x' })"), /Office a bloccare/);
 });

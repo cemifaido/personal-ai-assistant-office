@@ -50,7 +50,7 @@ Office.onReady((info) => {
 
 /** Primo avvio: nessuna chiave salvata → impostazioni aperte con istruzioni. */
 function showOnboardingIfNeeded() {
-  const hasAnyKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
+  const hasAnyKey = Object.keys(KEY_INPUTS).some(p => aiProviderReady(p));
   if (hasAnyKey) return;
   setSettingsOpen(true);
   notify('Benvenuto! Personal AI Assistant funziona solo con una TUA chiave API personale, non inclusa: ' +
@@ -154,7 +154,12 @@ async function openCustomModel(provider) {
   row.classList.remove('hidden');
   input.focus();
   const key = aiGetKey(provider).trim();
-  if (!key) { hint.textContent = 'Scrivi l\'ID esatto indicato dal provider. Inserisci la chiave per avere i suggerimenti.'; return; }
+  if (!aiProviderReady(provider)) {
+    hint.textContent = provider === 'locale'
+      ? "Indica prima l'indirizzo del server nelle impostazioni (Altri provider), poi scegli il modello."
+      : "Scrivi l'ID esatto indicato dal provider. Inserisci la chiave per avere i suggerimenti.";
+    return;
+  }
   hint.textContent = 'Carico l\'elenco dei modelli dal provider…';
   try {
     if (!providerModelCache[provider]) providerModelCache[provider] = await aiListModels(provider, key);
@@ -195,8 +200,8 @@ function useCustomModel() {
 /** Se il modello scelto è di un provider senza chiave, passa al primo provider che ne ha una. */
 function selectModelWithKey() {
   const { provider } = getSelectedModelInfo();
-  if (aiGetKey(provider)) return;
-  const withKey = AI_CATALOG.find(m => aiGetKey(m.provider));
+  if (aiProviderReady(provider)) return;
+  const withKey = AI_CATALOG.find(m => aiProviderReady(m.provider));
   if (!withKey) return;
   const select = document.getElementById('select-model');
   select.value = `${withKey.provider}:${withKey.id}`;
@@ -226,7 +231,9 @@ function loadSavedKeys() {
                          qwen: 'sk-...', minimax: 'sk-api-...', deepseek: 'sk-...', openrouter: 'sk-or-v1-...' };
   // La sezione "Altri provider" si apre da sola se una di quelle chiavi e' presente.
   const more = document.getElementById('more-providers');
-  if (more && COMPAT_PROVIDERS.some(p => aiGetKey(p))) more.open = true;
+  if (more && COMPAT_PROVIDERS.some(p => aiProviderReady(p))) more.open = true;
+  const localUrl = document.getElementById('input-local-url');
+  if (localUrl) localUrl.value = aiLocalUrl();
   for (const [p, id] of Object.entries(KEY_INPUTS)) {
     const input = document.getElementById(id);
     const key = aiGetKey(p);
@@ -240,6 +247,11 @@ function loadSavedKeys() {
 function updateKeyBadges() {
   for (const p of Object.keys(KEY_INPUTS)) {
     const el = document.getElementById(`badge-${p}-status`);
+    if (p === 'locale') {   // il locale non richiede chiave: conta l'indirizzo
+      el.textContent = aiLocalUrl() ? 'Configurato' : 'Non configurato';
+      el.className = `key-badge ${aiLocalUrl() ? 'ready' : 'missing'}`;
+      continue;
+    }
     const where = aiKeyStorage(p);
     const has = Boolean(where);
     el.textContent = where === 'salvata' ? 'Salvata' : where === 'sessione' ? 'Solo sessione' : 'Mancante';
@@ -252,7 +264,8 @@ async function verifyKeys() {
   for (const p of Object.keys(KEY_INPUTS)) {
     const key = aiGetKey(p).trim();
     const el = document.getElementById(`badge-${p}-status`);
-    if (!key) { lines.push(`${AI_PROVIDER_NAMES[p]}: nessuna chiave`); continue; }
+    if (p === 'locale' && !aiLocalUrl()) continue;
+    if (!key && p !== 'locale') { lines.push(`${AI_PROVIDER_NAMES[p]}: nessuna chiave`); continue; }
     el.textContent = 'Verifica…';
     try {
       const available = await aiListModels(p, key);
@@ -374,9 +387,16 @@ function initEventListeners() {
       const value = document.getElementById(id).value.trim();
       if (value && !aiSetKey(p, value)) ok = false;
     }
+    // Indirizzo del modello locale: solo questo PC o IP privati (vuoto = nessun modello locale).
+    const localInput = document.getElementById('input-local-url');
+    if (localInput && localInput.value.trim() !== aiLocalUrl() && !aiSetLocalUrl(localInput.value)) {
+      notify('Indirizzo del modello locale non valido: usa questo PC (es. http://localhost:11434/v1) o un IP privato ' +
+             '(es. https://192.168.1.20:8080/v1). I nomi di computer non sono accettati.', 'error');
+      return;
+    }
     loadSavedKeys();
     updateKeyBadges();
-    const hasKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
+    const hasKey = Object.keys(KEY_INPUTS).some(p => aiProviderReady(p));
     if (!ok) {
       notify('Non è stato possibile completare il salvataggio delle preferenze o delle chiavi, oppure rimuovere una copia dal disco. Controlla lo stato delle chiavi e riprova; per rimuoverle usa "Cancella".', 'error');
     } else {

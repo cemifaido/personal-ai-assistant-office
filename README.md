@@ -3,7 +3,7 @@
 **Assistente AI per Word, Excel, PowerPoint e Outlook per Windows** - versione beta 0.2.0
 
 > [!IMPORTANT]
-> **Serve una tua chiave API personale.** Personal AI Assistant non funziona senza almeno una chiave API di **Google Gemini, OpenAI, Anthropic Claude, Qwen, MiniMax, DeepSeek o OpenRouter** (in Outlook anche un modello locale, senza chiave).
+> **Serve una tua chiave API personale.** Personal AI Assistant non funziona senza almeno una chiave API di **Google Gemini, OpenAI, Anthropic Claude, Qwen, MiniMax, DeepSeek o OpenRouter** (in Outlook anche un modello locale, senza chiave; nel pannello in via sperimentale).
 > La chiave **non è inclusa** nell'installazione: la ottieni tu dal sito del provider ed è legata al **tuo account e al tuo contratto** con quel provider (piano gratuito o a pagamento, limiti, costi e condizioni d'uso sono quelli del provider).
 > Senza chiave il pannello si apre ma non può elaborare nulla. Per iniziare gratis il modo più semplice è una chiave [Google AI Studio](https://aistudio.google.com/apikey).
 

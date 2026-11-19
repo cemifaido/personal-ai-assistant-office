@@ -138,6 +138,19 @@
             </div>
             <div class="input-with-button"><input type="password" id="input-openrouter-key" placeholder="sk-or-v1-..." /></div>
           </div>
+
+          <!-- Modello locale (sperimentale): server sul PC o nella rete interna -->
+          <div class="key-field">
+            <div class="key-label-row">
+              <label for="input-local-url">Modello locale (sperimentale):</label>
+              <span class="key-right"><span id="badge-locale-status" class="key-badge">...</span></span>
+            </div>
+            <div class="input-with-button"><input type="text" id="input-local-url" placeholder="http://localhost:11434/v1" spellcheck="false" autocomplete="off" /></div>
+            <small class="more-providers-note">Ollama <code>:11434/v1</code>, llama-server <code>:8080/v1</code>, LM Studio <code>:1234/v1</code>.
+              Solo questo PC o un IP privato; da Word un altro PC della rete deve usare https. Il server deve accettare le chiamate dal sito
+              (Ollama: <code>OLLAMA_ORIGINS</code>; LM Studio: "Enable CORS"). Poi scegli il modello con <em>Altro modello…</em> nel gruppo "Modello locale".</small>
+            <div class="input-with-button"><input type="password" id="input-locale-key" placeholder="Chiave (facoltativa, solo se il server la richiede)" aria-label="Chiave del modello locale (facoltativa)" /></div>
+          </div>
         </details>
 
         <label class="persist-option" for="chk-persist-keys">

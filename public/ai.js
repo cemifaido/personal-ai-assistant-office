@@ -28,8 +28,54 @@ const AI_CATALOG = [
 
 const AI_PROVIDER_NAMES = {
   gemini: 'Google Gemini', openai: 'OpenAI', claude: 'Anthropic Claude',
-  qwen: 'Qwen (Alibaba)', minimax: 'MiniMax', deepseek: 'DeepSeek', openrouter: 'OpenRouter'
+  qwen: 'Qwen (Alibaba)', minimax: 'MiniMax', deepseek: 'DeepSeek', openrouter: 'OpenRouter',
+  locale: 'Modello locale (sperimentale)'
 };
+
+// --- Modello locale (Ollama, llama-server, LM Studio) ---
+// Indirizzo scelto dall'utente; ammessi solo questo PC o IP privati scritti per esteso (nessun nome DNS).
+// Dal pannello (pagina https) un http:// verso un altro PC e' bloccato dal browser: in quel caso serve https.
+const AI_LOCAL_URL_KEY = 'paa.local.url';
+const AI_LOCAL_DEFAULT = 'http://localhost:11434/v1';
+
+function aiIsInternalHost(hostname) {
+  const h = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (h === 'localhost' || h === '::1' || /^127\./.test(h)) return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+  }
+  return /^f[cd][0-9a-f]{0,2}:/.test(h) || /^fe[89ab][0-9a-f]?:/.test(h);   // IPv6 ULA / link-local
+}
+
+/** Indirizzo normalizzato del server locale, o null se non ammesso. */
+function aiNormalizeLocalUrl(input) {
+  let u;
+  try { u = new URL(String(input || '').trim()); } catch (e) { return null; }
+  if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password || u.search || u.hash) return null;
+  if (!aiIsInternalHost(u.hostname)) return null;
+  return (u.origin + u.pathname).replace(/\/+$/, '').replace(/\/(chat\/completions|models)$/i, '');
+}
+
+function aiLocalUrl() {
+  let v = '';
+  try { v = localStorage.getItem(AI_LOCAL_URL_KEY) || ''; } catch (e) { /* storage non disponibile */ }
+  return aiNormalizeLocalUrl(v) || '';
+}
+
+/** Salva l'indirizzo del server locale; '' lo toglie. Restituisce false se non ammesso o non salvato. */
+function aiSetLocalUrl(input) {
+  if (!String(input || '').trim()) { try { localStorage.removeItem(AI_LOCAL_URL_KEY); return true; } catch (e) { return false; } }
+  const url = aiNormalizeLocalUrl(input);
+  if (!url) return false;
+  try { localStorage.setItem(AI_LOCAL_URL_KEY, url); return localStorage.getItem(AI_LOCAL_URL_KEY) === url; } catch (e) { return false; }
+}
+
+/** Il provider e' utilizzabile: chiave presente, o per il locale indirizzo configurato. */
+function aiProviderReady(provider) {
+  return provider === 'locale' ? Boolean(aiLocalUrl()) : Boolean(aiGetKey(provider));
+}
 
 /**
  * Provider con API compatibile OpenAI: cambiano solo indirizzo e modelli. Gli indirizzi sono fissati qui
@@ -50,7 +96,8 @@ const AI_COMPAT = {
   deepseek:   { base: 'https://api.deepseek.com' },
   openrouter: { base: 'https://openrouter.ai/api/v1', keyCheck: '/key',
                 headers: { 'HTTP-Referer': 'https://pai-office-automation.github.io/personal-ai-assistant-office/',
-                           'X-Title': 'Personal AI Assistant' } }
+                           'X-Title': 'Personal AI Assistant' } },
+  locale:     { get base() { return aiLocalUrl(); }, local: true }
 };
 
 const AI_TIMEOUT_MS = 120000;
@@ -197,9 +244,15 @@ function aiClassifyHttpError(provider, status, data) {
 async function aiFetchJson(provider, url, init, signal) {
   let response;
   try {
-    response = await fetch(url, { ...init, signal });
+    // Nessun reindirizzamento: la richiesta (con chiave e testo) va solo all'indirizzo previsto.
+    response = await fetch(url, { ...init, redirect: 'error', signal });
   } catch (err) {
     if (err.name === 'AbortError') throw err;
+    if (provider === 'locale') {
+      throw new AIError("Il pannello non riesce a raggiungere il modello locale. Controlla che il server sia acceso e che accetti " +
+        "le chiamate dal sito (llama-server: già attivo; LM Studio: \"Enable CORS\"; Ollama: variabile OLLAMA_ORIGINS). " +
+        "Se è tutto a posto, è Office a bloccare l'accesso alla rete locale dal pannello: usa il modello locale da Outlook.", { retryable: false });
+    }
     throw new AIError(`Rete non raggiungibile verso ${AI_PROVIDER_NAMES[provider]}: ${err.message}`, { retryable: true });
   }
   let data = null;
@@ -289,7 +342,7 @@ function aiStripThinking(text) {
 }
 
 function aiCompatHeaders(provider, apiKey) {
-  return { 'authorization': `Bearer ${apiKey}`, ...(AI_COMPAT[provider].headers || {}) };
+  return { ...(apiKey ? { 'authorization': `Bearer ${apiKey}` } : {}), ...(AI_COMPAT[provider].headers || {}) };
 }
 
 async function aiCallCompatible(provider, { apiKey, model, system, user, signal }) {
@@ -331,7 +384,8 @@ async function aiCall({ provider, model, prompt, context, system, signal }) {
   const adapter = AI_ADAPTERS[provider];
   if (!adapter) throw new AIError(`Provider sconosciuto: ${provider}`);
   const apiKey = aiGetKey(provider).trim();
-  if (!apiKey) throw new AIError(`Manca la chiave ${AI_PROVIDER_NAMES[provider]}: inseriscila nelle impostazioni (⚙️).`);
+  if (provider === 'locale' && !aiLocalUrl()) throw new AIError("Indica l'indirizzo del modello locale nelle impostazioni (Altri provider).");
+  if (!apiKey && provider !== 'locale') throw new AIError(`Manca la chiave ${AI_PROVIDER_NAMES[provider]}: inseriscila nelle impostazioni (⚙️).`);
 
   const fullSystem = `${system || 'Sei un assistente AI integrato in Microsoft Office. Rispondi in italiano in modo chiaro e conciso, senza prefissi come "Risposta:".'}\n\n${AI_DATA_GUARD}`;
   const user = aiBuildUserContent(prompt, context);
