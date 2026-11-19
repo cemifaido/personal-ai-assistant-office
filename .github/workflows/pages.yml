@@ -1,9 +1,10 @@
-# Pubblica SOLO la cartella public/ su GitHub Pages a ogni push su main.
+# Pubblica SOLO la cartella public/ su GitHub Pages a ogni push su main,
+# insieme al manifest Word/Excel generato dal modello con l'indirizzo reale del sito.
 name: Pubblica pannello
 on:
   push:
     branches: [main]
-    paths: ['public/**', '.github/workflows/pages.yml']
+    paths: ['public/**', 'manifest-word-excel.template.xml', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -23,9 +24,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
+      - id: pages
+        uses: actions/configure-pages@v5
       - name: Versione nei riferimenti (evita la cache del pannello)
         run: sed -i "s/__VERSION__/${GITHUB_SHA::8}/g" public/index.html
+      - name: Genera il manifest Word/Excel con l'indirizzo del sito
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          sed "s#__BASE_URL__#${BASE_URL%/}#g" manifest-word-excel.template.xml > public/manifest.xml
+          if grep -q "__BASE_URL__" public/manifest.xml; then echo "segnaposto non sostituito" >&2; exit 1; fi
+          python3 -c "import xml.dom.minidom,sys; xml.dom.minidom.parse('public/manifest.xml')"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public

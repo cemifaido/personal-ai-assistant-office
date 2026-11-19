@@ -551,3 +551,8 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* Link "Ottieni chiave" accanto al nome del provider */
+.key-right { display: flex; align-items: center; gap: 6px; }
+.key-link { font-size: 10px; color: var(--primary-color); text-decoration: none; }
+.key-link:hover { text-decoration: underline; }

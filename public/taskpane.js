@@ -5,8 +5,12 @@
 
 let currentHost = 'browser';
 let lastGeneratedText = '';
+// Tipo di risultato deciso dal PULSANTE premuto, non dal testo del modello:
+// 'formula' | 'table' | 'text'. Determina come viene applicato in Excel.
+let lastResultKind = 'text';
 let currentAbort = null;
-let excelOverwriteArmed = false;
+// Conferma di sovrascrittura legata a destinazione + contenuto: se cambiano, si richiede di nuovo.
+let pendingOverwrite = null;
 
 Office.onReady((info) => {
   const hostBadge = document.getElementById('host-badge');
@@ -32,7 +36,28 @@ Office.onReady((info) => {
   initEventListeners();
   loadSavedKeys();
   updateKeyBadges();
+  document.getElementById('app-version').textContent = `v${PAA_VERSION}`;
+  showOnboardingIfNeeded();
 });
+
+/** Primo avvio: nessuna chiave salvata → impostazioni aperte con istruzioni. */
+function showOnboardingIfNeeded() {
+  const hasAnyKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
+  if (hasAnyKey) return;
+  document.getElementById('settings-card').classList.remove('hidden');
+  notify('Benvenuto! Per iniziare serve una chiave API di almeno un provider.\n' +
+    'La più semplice: Google Gemini → "Ottieni chiave", crea la chiave, copiala qui sotto e premi "Salva chiavi".', 'info');
+}
+
+function openExternal(url) {
+  try {
+    if (typeof Office !== 'undefined' && Office.context && Office.context.ui && Office.context.ui.openBrowserWindow) {
+      Office.context.ui.openBrowserWindow(url);
+      return;
+    }
+  } catch (e) { /* ripiego sotto */ }
+  window.open(url, '_blank', 'noopener');
+}
 
 function setHost(host, label, badge) {
   currentHost = host;
@@ -57,6 +82,7 @@ function showPanel(panelName) {
 
 function storeGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
 function storeSet(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
+const MODEL_STORE_KEY = 'paa.model';
 
 /* ===================== Modelli ===================== */
 
@@ -74,8 +100,20 @@ function buildModelSelect() {
     });
     select.appendChild(group);
   }
-  const saved = storeGet('active_model_spec');
+  const saved = storeGet(MODEL_STORE_KEY);
   if (saved && [...select.options].some(o => o.value === saved)) select.value = saved;
+}
+
+/** Se il modello scelto è di un provider senza chiave, passa al primo provider che ne ha una. */
+function selectModelWithKey() {
+  const { provider } = getSelectedModelInfo();
+  if (aiGetKey(provider)) return;
+  const withKey = AI_CATALOG.find(m => aiGetKey(m.provider));
+  if (!withKey) return;
+  const select = document.getElementById('select-model');
+  select.value = `${withKey.provider}:${withKey.id}`;
+  storeSet(MODEL_STORE_KEY, select.value);
+  notify(`Modello impostato su ${withKey.label}: è il primo provider per cui hai una chiave.`, 'info');
 }
 
 function getSelectedModelInfo() {
@@ -90,14 +128,14 @@ const KEY_INPUTS = { gemini: 'input-gemini-key', openai: 'input-openai-key', cla
 
 function loadSavedKeys() {
   for (const [p, id] of Object.entries(KEY_INPUTS)) {
-    document.getElementById(id).value = storeGet(`${p}_api_key`);
+    document.getElementById(id).value = aiGetKey(p);
   }
 }
 
 function updateKeyBadges() {
   for (const p of Object.keys(KEY_INPUTS)) {
     const el = document.getElementById(`badge-${p}-status`);
-    const has = Boolean(storeGet(`${p}_api_key`));
+    const has = Boolean(aiGetKey(p));
     el.textContent = has ? 'Salvata' : 'Mancante';
     el.className = `key-badge ${has ? 'ready' : 'missing'}`;
   }
@@ -106,7 +144,7 @@ function updateKeyBadges() {
 async function verifyKeys() {
   const lines = [];
   for (const p of Object.keys(KEY_INPUTS)) {
-    const key = storeGet(`${p}_api_key`).trim();
+    const key = aiGetKey(p).trim();
     const el = document.getElementById(`badge-${p}-status`);
     if (!key) { lines.push(`${AI_PROVIDER_NAMES[p]}: nessuna chiave`); continue; }
     el.textContent = 'Verifica…';
@@ -142,8 +180,17 @@ function setLoader(visible, text = 'Elaborazione in corso...') {
 
 function initEventListeners() {
   document.getElementById('select-model').addEventListener('change', (e) => {
-    storeSet('active_model_spec', e.target.value);
+    storeSet(MODEL_STORE_KEY, e.target.value);
     notify(`Modello impostato: ${getSelectedModelInfo().label}`);
+  });
+
+  document.querySelectorAll('[data-key-link]').forEach((a) => {
+    a.addEventListener('click', (e) => { e.preventDefault(); openExternal(a.dataset.keyLink); });
+  });
+  document.getElementById('btn-clear-keys').addEventListener('click', () => {
+    for (const [p, id] of Object.entries(KEY_INPUTS)) { aiSetKey(p, ''); document.getElementById(id).value = ''; }
+    updateKeyBadges();
+    notify('Chiavi cancellate da questo pannello. Se hai Personal AI anche in Word/Excel e Outlook, cancellale anche lì.', 'success');
   });
 
   document.getElementById('btn-toggle-settings').addEventListener('click', () => {
@@ -152,10 +199,11 @@ function initEventListeners() {
 
   document.getElementById('btn-save-all-keys').addEventListener('click', () => {
     for (const [p, id] of Object.entries(KEY_INPUTS)) {
-      storeSet(`${p}_api_key`, document.getElementById(id).value.trim());
+      aiSetKey(p, document.getElementById(id).value.trim());
     }
     updateKeyBadges();
     notify('Chiavi salvate in questo pannello.', 'success');
+    selectModelWithKey();
   });
   document.getElementById('btn-verify-keys').addEventListener('click', verifyKeys);
 
@@ -218,10 +266,11 @@ function cleanForDocument(rawText) {
 
 let typingIntervalId = null;
 
-function displayResult(result) {
+function displayResult(result, kind) {
   const cleaned = cleanForDocument(result.text);
   lastGeneratedText = cleaned;
-  excelOverwriteArmed = false;
+  lastResultKind = kind || 'text';
+  pendingOverwrite = null;
 
   const container = document.getElementById('result-container');
   const content = document.getElementById('result-content');
@@ -255,13 +304,13 @@ function displayResult(result) {
 }
 
 /** Esegue una richiesta al modello con loader, annullamento ed errori uniformi. */
-async function runAI(loaderText, { prompt, context, system }) {
+async function runAI(loaderText, { prompt, context, system, kind = 'text' }) {
   const { provider, model } = getSelectedModelInfo();
   currentAbort = new AbortController();
   setLoader(true, `${loaderText} (${AI_PROVIDER_NAMES[provider]})`);
   try {
     const result = await aiCall({ provider, model, prompt, context, system, signal: currentAbort.signal });
-    displayResult(result);
+    displayResult(result, kind);
   } catch (err) {
     notify(err.message, 'error');
   } finally {
@@ -556,7 +605,8 @@ riga 1: "FORMULA: =..."
 riga 2: "TIPO: RIGA" se la formula va ripetuta per ogni riga di dati, oppure "TIPO: UNICA" se è un solo calcolo (totale, media, conteggio...)
 poi una spiegazione di massimo 3 righe, citando le colonne usate.`,
     context: overview,
-    system: 'Sei un esperto di Microsoft Excel e formule avanzate.'
+    system: 'Sei un esperto di Microsoft Excel e formule avanzate.',
+    kind: 'formula'
   });
 }
 
@@ -590,7 +640,8 @@ function handleExcelGenTable() {
     prompt: `Genera una tabella con: "${prompt}".
 Formato OBBLIGATORIO: una riga per record, colonne separate da un carattere TAB, prima riga di intestazione.
 Numeri senza separatore delle migliaia e con il punto come separatore decimale. Nessun altro testo.`,
-    system: 'Restituisci solo dati tabellari separati da TAB.'
+    system: 'Restituisci solo dati tabellari separati da TAB.',
+    kind: 'table'
   });
 }
 
@@ -617,12 +668,31 @@ function parseTable(text) {
   });
 }
 
-async function applyToExcel(text, rawText) {
+/**
+ * Conferma di sovrascrittura: vale solo per la STESSA destinazione e lo STESSO contenuto
+ * per cui è stata chiesta. Se cambia la selezione o il risultato, si chiede di nuovo.
+ * Restituisce true se si può scrivere.
+ */
+function confirmOverwrite(address, occupied, content) {
+  if (!occupied) { pendingOverwrite = null; return true; }
+  const token = `${address}\u0000${lastResultKind}\u0000${content}`;
+  if (pendingOverwrite === token) { pendingOverwrite = null; return true; }
+  pendingOverwrite = token;
+  notify(`${address} contiene già dati. Premi di nuovo lo stesso pulsante per sovrascrivere proprio quest'area, oppure cambia selezione.`, 'warn');
+  return false;
+}
+
+/** Applica il risultato in Excel secondo il tipo deciso dal pulsante che l'ha generato. */
+async function applyToExcel(text) {
   await Excel.run(async (context) => {
-    const formulaMatch = rawText.match(/FORMULA:\s*`*(=[^\r\n`]+)/i) || text.match(/^(=[^\r\n]+)/);
-    if (formulaMatch) {
+    if (lastResultKind === 'formula') {
+      const formulaMatch = text.match(/FORMULA:\s*`*(=[^\r\n`]+)/i);
+      if (!formulaMatch) {
+        notify('Il risultato non contiene una riga "FORMULA: =...". Rigenera la formula.', 'warn');
+        return;
+      }
       const f = formulaMatch[1].trim();
-      const perRow = /TIPO:\s*RIGA/i.test(rawText);
+      const perRow = /TIPO:\s*RIGA/i.test(text);
       const t = await getFormulaTarget(context);
       const dest = perRow && t.rows > 1 ? t.full : t.first;
       const destAddress = perRow && t.rows > 1 ? t.fullAddress : t.firstAddress;
@@ -630,11 +700,7 @@ async function applyToExcel(text, rawText) {
       dest.load('values');
       await context.sync();
       const occupied = dest.values.some(r => r.some(v => v !== '' && v !== null));
-      if (occupied && !excelOverwriteArmed) {
-        excelOverwriteArmed = true;
-        notify(`${destAddress} contiene già dati. Premi di nuovo il pulsante per sovrascrivere, oppure cambia selezione.`, 'warn');
-        return;
-      }
+      if (!confirmOverwrite(destAddress, occupied, f)) return;
 
       // Formula italiana → formulasLocal (come digitata in Excel); altrimenti formulas (inglese).
       if (excelIsItalian()) t.first.formulasLocal = [[f]]; else t.first.formulas = [[f]];
@@ -646,7 +712,6 @@ async function applyToExcel(text, rawText) {
         t.full.formulasR1C1 = Array.from({ length: t.rows }, () => [r1c1]);
       }
       await context.sync();
-      excelOverwriteArmed = false;
 
       let msg = dest === t.full
         ? `Formula inserita in ${t.fullAddress} (${t.rows} righe).`
@@ -660,21 +725,23 @@ async function applyToExcel(text, rawText) {
 
     const start = context.workbook.getSelectedRange().getCell(0, 0);
 
-    const matrix = parseTable(text) || [[text]];
+    let matrix;
+    if (lastResultKind === 'table') {
+      matrix = parseTable(text);
+      if (!matrix) { notify('Il risultato non è una tabella separata da TAB: rigenera i dati.', 'warn'); return; }
+    } else {
+      // Testo libero (es. un'analisi): una sola cella, mai interpretato come formula.
+      matrix = [[text.startsWith('=') ? "'" + text : text]];
+    }
     const target = start.getResizedRange(matrix.length - 1, matrix[0].length - 1);
     target.load(['address', 'values']);
     await context.sync();
 
     const occupied = target.values.some(r => r.some(v => v !== '' && v !== null));
-    if (occupied && !excelOverwriteArmed) {
-      excelOverwriteArmed = true;
-      notify(`L'area ${target.address} contiene già dati. Premi di nuovo il pulsante per sovrascriverla, oppure seleziona un'altra cella.`, 'warn');
-      return;
-    }
+    if (!confirmOverwrite(target.address.replace(/^.*!/, ''), occupied, text)) return;
     target.values = matrix;
     await context.sync();
-    excelOverwriteArmed = false;
-    notify(`Inseriti ${matrix.length}×${matrix[0].length} valori in ${target.address}.`, 'success');
+    notify(`Inseriti ${matrix.length}×${matrix[0].length} valori in ${target.address.replace(/^.*!/, '')}.`, 'success');
   });
 }
 
@@ -757,7 +824,7 @@ async function applyTextToDocument(text, mode = 'replace') {
     }
   } else if (currentHost === 'excel' && typeof Excel !== 'undefined') {
     try {
-      await applyToExcel(text, text);
+      await applyToExcel(text);
     } catch (err) {
       notify('Errore inserimento Excel: ' + err.message, 'error');
     }

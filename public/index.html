@@ -42,7 +42,7 @@
     <section id="settings-card" class="settings-card hidden">
       <div class="settings-header">
         <h4>🔑 Gestione Chiavi API</h4>
-        <small>Salvate solo in questo pannello e inviate unicamente al provider scelto.</small>
+        <small>Le chiavi restano in questo pannello sul tuo PC e vengono inviate solo al provider scelto. I testi che elabori vengono inviati a quel provider: <a href="#" class="key-link" data-key-link="https://cemifaido.github.io/personal-ai-assistant-office/privacy.html">informativa</a>.</small>
       </div>
       <div class="settings-body">
         
@@ -50,7 +50,7 @@
         <div class="key-field">
           <div class="key-label-row">
             <label for="input-gemini-key">🔵 Google Gemini:</label>
-            <span id="badge-gemini-status" class="key-badge">...</span>
+            <span class="key-right"><a href="#" class="key-link" data-key-link="https://aistudio.google.com/apikey">Ottieni chiave</a> <span id="badge-gemini-status" class="key-badge">...</span></span>
           </div>
           <div class="input-with-button">
             <input type="password" id="input-gemini-key" placeholder="AIzaSy..." />
@@ -61,7 +61,7 @@
         <div class="key-field">
           <div class="key-label-row">
             <label for="input-openai-key">🟢 OpenAI / Codex:</label>
-            <span id="badge-openai-status" class="key-badge">...</span>
+            <span class="key-right"><a href="#" class="key-link" data-key-link="https://platform.openai.com/api-keys">Ottieni chiave</a> <span id="badge-openai-status" class="key-badge">...</span></span>
           </div>
           <div class="input-with-button">
             <input type="password" id="input-openai-key" placeholder="sk-proj-..." />
@@ -72,7 +72,7 @@
         <div class="key-field">
           <div class="key-label-row">
             <label for="input-claude-key">🟠 Anthropic Claude:</label>
-            <span id="badge-claude-status" class="key-badge">...</span>
+            <span class="key-right"><a href="#" class="key-link" data-key-link="https://console.anthropic.com/settings/keys">Ottieni chiave</a> <span id="badge-claude-status" class="key-badge">...</span></span>
           </div>
           <div class="input-with-button">
             <input type="password" id="input-claude-key" placeholder="sk-ant-..." />
@@ -82,6 +82,7 @@
         <div class="button-group" style="margin-top: 8px;">
           <button id="btn-save-all-keys" class="btn-primary">Salva chiavi</button>
           <button id="btn-verify-keys" class="btn-secondary" title="Controlla le chiavi e che i modelli del catalogo esistano">Verifica chiavi</button>
+          <button id="btn-clear-keys" class="btn-outline" title="Cancella le chiavi salvate in questo pannello">Cancella</button>
         </div>
         <div id="api-status-msg" class="status-msg"></div>
       </div>
@@ -228,7 +229,7 @@
     </main>
 
     <footer class="app-footer">
-      <span>Personal AI Assistant • chiamate dirette ai provider, nessun server locale</span>
+      <span>Personal AI Assistant <span id="app-version"></span> (beta) • chiamate dirette ai provider</span>
     </footer>
   </div>
 

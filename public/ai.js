@@ -35,9 +35,35 @@ class AIError extends Error {
   }
 }
 
+const PAA_VERSION = '0.1.0';
+
+// Chiavi salvate con un prefisso dell'app (prima: "<provider>_api_key", nomi generici).
+const AI_KEY_PREFIX = 'paa.key.';
+
 function aiGetKey(provider) {
-  try { return localStorage.getItem(`${provider}_api_key`) || ''; } catch (e) { return ''; }
+  try { return localStorage.getItem(AI_KEY_PREFIX + provider) || ''; } catch (e) { return ''; }
 }
+
+function aiSetKey(provider, value) {
+  try {
+    if (value) localStorage.setItem(AI_KEY_PREFIX + provider, value);
+    else localStorage.removeItem(AI_KEY_PREFIX + provider);
+  } catch (e) { /* storage non disponibile */ }
+}
+
+// Migrazione una tantum dai nomi usati fino alla versione di prova.
+(function aiMigrateStorage() {
+  try {
+    for (const p of ['gemini', 'openai', 'claude']) {
+      const old = localStorage.getItem(`${p}_api_key`);
+      if (old && !localStorage.getItem(AI_KEY_PREFIX + p)) localStorage.setItem(AI_KEY_PREFIX + p, old);
+      localStorage.removeItem(`${p}_api_key`);
+    }
+    const oldModel = localStorage.getItem('active_model_spec');
+    if (oldModel && !localStorage.getItem('paa.model')) localStorage.setItem('paa.model', oldModel);
+    localStorage.removeItem('active_model_spec');
+  } catch (e) { /* storage non disponibile */ }
+})();
 
 function aiBuildUserContent(prompt, context) {
   let s = '';
