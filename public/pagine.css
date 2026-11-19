@@ -1,5 +1,5 @@
 /* Personal AI Assistant - Stile condiviso delle pagine (installazione, privacy)
-   Design Fluent / Office moderno, orientato al prodotto, WCAG AA, zero emoji */
+   Design Fluent / Office moderno, orientato al prodotto, nessuna emoji. Contrasti del testo principale calcolati >= 4.5:1; audit di accessibilita completo non ancora eseguito */
 
 :root {
   --bg: #f8fafc;
@@ -8,15 +8,15 @@
   --surface-hover: #f8fafc;
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
-  --border-focus: #0284c7;
+  --border-focus: #0369a1;
 
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
 
-  --primary: #0284c7;
-  --primary-hover: #0369a1;
-  --primary-active: #075985;
+  --primary: #0369a1;
+  --primary-hover: #075985;
+  --primary-active: #0c4a6e;
   --primary-contrast: #ffffff;
   --primary-bg: #e0f2fe;
   --primary-border: #bae6fd;
@@ -710,7 +710,7 @@ footer.site-footer {
   }
 
   .hero-preview-col {
-    order: -1;
+    order: 0; /* su telefono prima il testo e il pulsante, poi l'illustrazione */
   }
 
   .hero-preview-img {
@@ -771,3 +771,19 @@ footer.site-footer {
     padding: 9px 12px;
   }
 }
+
+/* Frase breve sulla chiave accanto al pulsante Scarica (revisione Codex) */
+.hero-key-chip {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius-md);
+}
+.hero-key-chip a { color: var(--warn-title); font-weight: 600; }
+.hero-preview-caption { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); text-align: center; }
+.hero-preview-col { flex-direction: column; align-items: center; }

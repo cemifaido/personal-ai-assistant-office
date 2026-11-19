@@ -21,7 +21,7 @@
       </div>
       <div class="header-right">
         <span id="host-badge" class="host-badge">Rilevamento...</span>
-        <button id="btn-toggle-settings" class="btn-icon" title="Impostazioni API Key e Modelli" aria-label="Impostazioni">
+        <button id="btn-toggle-settings" class="btn-icon" aria-controls="settings-card" aria-expanded="false" title="Impostazioni API Key e Modelli" aria-label="Impostazioni">
           <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
@@ -35,6 +35,7 @@
     </div>
 
     <!-- Messaggi (sostituisce alert(), non affidabile nei pannelli Office) -->
+    <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
     <div id="notice" class="notice hidden" role="status">
       <span id="notice-text"></span>
       <button id="notice-close" class="btn-icon" title="Chiudi" aria-label="Chiudi avviso">
@@ -46,7 +47,7 @@
     <section id="settings-card" class="settings-card hidden">
       <div class="settings-header">
         <h4>
-          <svg class="ui-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9l-1.5-1.5L5 9a7 7 0 1 0 9.9 9.9L22 12v-3l-3-3v-2l-2-2Z"/><circle cx="7.5" cy="16.5" r="1.5"/></svg>
+          <svg class="ui-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2"/><path d="m17 6 3 3"/><path d="m14.5 8.5 2 2"/></svg>
           Gestione Chiavi API
         </h4>
         <small>Le chiavi restano in questo pannello sul tuo PC e vengono inviate solo al provider scelto. I testi che elabori vengono inviati a quel provider: <a href="#" class="key-link" data-key-link="privacy.html">informativa</a>.</small>
@@ -151,7 +152,7 @@
 
         <div class="panel-section">
           <h3>Chiedi o Genera</h3>
-          <textarea id="word-custom-prompt" class="prompt-box" rows="2" placeholder="Es: 'Scrivi un'introduzione su questo argomento', oppure poni una domanda sul testo..."></textarea>
+          <textarea id="word-custom-prompt" aria-label="Richiesta da generare o domanda sul documento" class="prompt-box" rows="2" placeholder="Es: 'Scrivi un'introduzione su questo argomento', oppure poni una domanda sul testo..."></textarea>
           <div class="button-group">
             <button id="btn-word-generate" class="btn-primary">Genera al cursore</button>
             <button id="btn-word-ask-doc" class="btn-secondary" title="Invia l'intero documento al modello per rispondere">Chiedi su tutto il file</button>
@@ -164,7 +165,7 @@
         <div class="panel-section">
           <h3>Generatore di Formule</h3>
           <p class="section-desc">Descrivi in italiano cosa vuoi calcolare o estrarre:</p>
-          <textarea id="excel-formula-prompt" class="prompt-box" rows="2" placeholder="Es: 'Cerca il valore di A2 nella colonna G e dammi il prezzo corrispondente in colonna H'"></textarea>
+          <textarea id="excel-formula-prompt" aria-label="Descrizione del calcolo per la formula" class="prompt-box" rows="2" placeholder="Es: 'Cerca il valore di A2 nella colonna G e dammi il prezzo corrispondente in colonna H'"></textarea>
           <button id="btn-excel-gen-formula" class="btn-primary full-width">Genera Formula Excel</button>
         </div>
 
@@ -180,13 +181,13 @@
         <div class="panel-section">
           <h3>Crea Grafico</h3>
           <p class="section-desc">Descrivi il grafico, oppure seleziona i dati e lascia vuoto:</p>
-          <textarea id="excel-chart-prompt" class="prompt-box" rows="2" placeholder="Es: 'Colonne con il punteggio finale per nominativo' oppure 'torta delle province di nascita'"></textarea>
+          <textarea id="excel-chart-prompt" aria-label="Descrizione del grafico (facoltativa)" class="prompt-box" rows="2" placeholder="Es: 'Colonne con il punteggio finale per nominativo' oppure 'torta delle province di nascita'"></textarea>
           <button id="btn-excel-chart" class="btn-primary full-width">Proponi Grafico</button>
         </div>
 
         <div class="panel-section">
           <h3>Genera Dati di Esempio</h3>
-          <input type="text" id="excel-data-prompt" class="input-text" placeholder="Es: 'Tabella con 5 prodotti, categorie e prezzi'" />
+          <input type="text" id="excel-data-prompt" aria-label="Descrizione dei dati di esempio" class="input-text" placeholder="Es: 'Tabella con 5 prodotti, categorie e prezzi'" />
           <button id="btn-excel-gen-table" class="btn-secondary full-width">Inserisci Dati nel Foglio</button>
         </div>
       </section>
@@ -219,14 +220,14 @@
         <div class="panel-section">
           <h3>Crea Slide da una Scaletta</h3>
           <p class="section-desc">Descrivi la presentazione: le slide vengono aggiunte in fondo, con il tema attuale.</p>
-          <textarea id="ppt-outline-prompt" class="prompt-box" rows="3" placeholder="Es: '6 slide sul piano commerciale Q1: obiettivi, mercato, offerta, tempi, budget, prossimi passi'"></textarea>
+          <textarea id="ppt-outline-prompt" aria-label="Descrizione delle slide da creare" class="prompt-box" rows="3" placeholder="Es: '6 slide sul piano commerciale Q1: obiettivi, mercato, offerta, tempi, budget, prossimi passi'"></textarea>
           <button id="btn-ppt-outline" class="btn-primary full-width">Proponi Slide</button>
         </div>
 
         <div class="panel-section">
           <h3>Migliora la Slide Selezionata</h3>
           <p class="section-desc">Riscrive tutti i testi della slide selezionata, mantenendo forme e formattazione.</p>
-          <input type="text" id="ppt-improve-prompt" class="input-text" placeholder="Facoltativo: 'più sintetica', 'tono commerciale', 'in inglese'..." />
+          <input type="text" id="ppt-improve-prompt" aria-label="Indicazione facoltativa per migliorare la slide" class="input-text" placeholder="Facoltativo: 'più sintetica', 'tono commerciale', 'in inglese'..." />
           <button id="btn-ppt-improve" class="btn-secondary full-width">Proponi Miglioramento</button>
         </div>
       </section>
@@ -266,7 +267,7 @@
 
         <div class="panel-section">
           <h3>Risposta Personalizzata</h3>
-          <textarea id="outlook-custom-reply" class="prompt-box" rows="2" placeholder="Istruzioni: 'Rispondi che sono in ferie fino a martedì ma posso sentirli mercoledì pomeriggio...'"></textarea>
+          <textarea id="outlook-custom-reply" aria-label="Istruzioni per la risposta" class="prompt-box" rows="2" placeholder="Istruzioni: 'Rispondi che sono in ferie fino a martedì ma posso sentirli mercoledì pomeriggio...'"></textarea>
           <button id="btn-outlook-gen-custom" class="btn-primary full-width">Scrivi Bozza</button>
         </div>
       </section>

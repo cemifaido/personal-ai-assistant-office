@@ -20,13 +20,12 @@
     
     <!-- Barra del titolo Office -->
     <path d="M 20 32 Q 20 20 32 20 L 608 20 Q 620 20 620 32 L 620 54 L 20 54 Z" fill="url(#officeHeader)" />
+    <!-- Controlli finestra (stile Windows) -->
+    <path d="M 568 37 L 578 37" stroke="#ffffff" stroke-width="1.3" opacity="0.9"/>
+    <rect x="586" y="32" width="9" height="9" fill="none" stroke="#ffffff" stroke-width="1.3" opacity="0.9"/>
+    <path d="M 603 32 L 612 41 M 612 32 L 603 41" stroke="#ffffff" stroke-width="1.3" opacity="0.9"/>
     
-    <!-- Controlli finestra -->
-    <circle cx="42" cy="37" r="4.5" fill="#f87171" opacity="0.8" />
-    <circle cx="58" cy="37" r="4.5" fill="#fbbf24" opacity="0.8" />
-    <circle cx="74" cy="37" r="4.5" fill="#34d399" opacity="0.8" />
-    
-    <text x="320" y="41" text-anchor="middle" fill="#ffffff" font-family="-apple-system, Segoe UI, sans-serif" font-size="12" font-weight="500" letter-spacing="0.02em">Documento1 - Microsoft Word • Personal AI</text>
+    <text x="320" y="41" text-anchor="middle" fill="#ffffff" font-family="-apple-system, Segoe UI, sans-serif" font-size="12" font-weight="500" letter-spacing="0.02em">Documento1 - Word</text>
 
     <!-- Barra Multifunzione / Ribbon simulata -->
     <rect x="20" y="54" width="600" height="38" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
@@ -84,7 +83,7 @@
 
       <!-- Sezione Lavorazione Testo -->
       <text x="14" y="102" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="11.5" font-weight="700">Testo Selezionato</text>
-      <text x="14" y="115" fill="#64748b" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5">4 paragrafi selezionati nel documento</text>
+      <text x="14" y="115" fill="#64748b" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5">Seleziona del testo e scegli un’azione</text>
 
       <!-- Griglia 4 pulsanti azione -->
       <g transform="translate(12, 124)">
@@ -117,16 +116,16 @@
         
         <text x="12" y="18" fill="#0369a1" font-family="-apple-system, Segoe UI, sans-serif" font-size="10" font-weight="700" letter-spacing="0.04em">RISULTATO GENERATO</text>
         
-        <text x="12" y="38" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">Le soluzioni illustrate permettono di ottimizzare</text>
-        <text x="12" y="54" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">i flussi informativi aziendali garantendo</text>
-        <text x="12" y="70" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">il pieno rispetto della riservatezza dei dati.</text>
+        <text x="12" y="38" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">Il trimestre si chiude con vendite in crescita</text>
+        <text x="12" y="54" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">e due nuove sedi aperte nel Nord Italia.</text>
+        <text x="12" y="70" fill="#0f172a" font-family="-apple-system, Segoe UI, sans-serif" font-size="10.5" font-weight="400">Prossimo obiettivo: consolidare i clienti.</text>
         
         <!-- Cursore di digitazione lampeggiante -->
         <rect x="238" y="59" width="6" height="13" fill="#0284c7" rx="1" />
 
         <!-- Pulsante azione rapida Sostituisci -->
         <rect x="10" y="80" width="120" height="20" rx="4" fill="url(#btnGrad)" />
-        <text x="70" y="93.5" text-anchor="middle" fill="#ffffff" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5" font-weight="600">Sostituisci nel testo</text>
+        <text x="70" y="93.5" text-anchor="middle" fill="#ffffff" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5" font-weight="600">Sostituisci nel documento</text>
         
         <rect x="136" y="80" width="120" height="20" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
         <text x="196" y="93.5" text-anchor="middle" fill="#475569" font-family="-apple-system, Segoe UI, sans-serif" font-size="9.5" font-weight="500">Copia risultato</text>

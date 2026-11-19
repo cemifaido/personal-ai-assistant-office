@@ -1,5 +1,5 @@
 /* Personal AI Assistant - Stile del pannello laterale Office (Task Pane)
-   Design Fluent / Office moderno, supporto chiaro e scuro (WCAG AA), zero emoji */
+   Design Fluent / Office moderno, chiaro e scuro, nessuna emoji. Contrasti del testo principale calcolati >= 4.5:1; audit di accessibilita completo non ancora eseguito */
 
 :root {
   --bg-app: #f8fafc;
@@ -9,14 +9,14 @@
   
   --border-color: #cbd5e1;
   --border-subtle: #e2e8f0;
-  --border-focus: #0284c7;
+  --border-focus: #0369a1;
 
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
 
-  --primary-color: #0284c7;
-  --primary-hover: #0369a1;
+  --primary-color: #0369a1;
+  --primary-hover: #075985;
   --primary-bg: #e0f2fe;
   --primary-border: #bae6fd;
   --primary-contrast: #ffffff;
@@ -717,3 +717,41 @@ body {
 .key-right { display: flex; align-items: center; gap: 6px; }
 .key-link { font-size: 11px; color: var(--primary-color); text-decoration: none; font-weight: 500; }
 .key-link:hover { text-decoration: underline; }
+
+/* ===== Accessibilita' e pannello stretto (revisione Codex) ===== */
+
+/* Focus da tastiera ben visibile su tutti i controlli (sovrascrive gli outline: none precedenti) */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+.model-select:focus-visible,
+.prompt-box:focus-visible,
+.input-text:focus-visible,
+.input-with-button input:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Barra del modello: la tendina si restringe invece di sforare a 320px */
+.model-bar > * { min-width: 0; }
+.model-select { min-width: 0; width: 100%; text-overflow: ellipsis; }
+
+/* Testi lunghi (id dei modelli, formule, URL) vanno a capo invece di allargare il pannello */
+.result-title, .result-body, .notice, #notice-text { overflow-wrap: anywhere; }
+
+/* Bersagli dei pulsanti a icona: almeno 32px */
+.btn-icon { min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Testo solo per lettori di schermo */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Chi chiede meno animazioni non le riceve */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .typing-cursor { display: none; }
+}

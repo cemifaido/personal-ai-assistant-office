@@ -47,6 +47,7 @@ function showOnboardingIfNeeded() {
   const hasAnyKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
   if (hasAnyKey) return;
   document.getElementById('settings-card').classList.remove('hidden');
+  document.getElementById('btn-toggle-settings').setAttribute('aria-expanded', 'true');
   notify('Benvenuto! Personal AI Assistant funziona solo con una TUA chiave API personale, non inclusa: ' +
     'è legata al tuo account e al tuo contratto con il provider. Senza chiave non può elaborare nulla.\n' +
     'La più semplice: Google Gemini → "Ottieni chiave", crea la chiave, copiala qui sotto e premi "Salva chiavi".', 'info');
@@ -174,7 +175,16 @@ function notify(msg, type = 'info') {
   const box = document.getElementById('notice');
   document.getElementById('notice-text').textContent = msg;
   box.className = `notice ${type}`;
-  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  box.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+}
+
+/** Messaggio breve per i lettori di schermo. */
+function announce(text) {
+  const el = document.getElementById('sr-status');
+  if (!el) return;
+  el.textContent = '';
+  setTimeout(() => { el.textContent = text; }, 50);
 }
 
 function setLoader(visible, text = 'Elaborazione in corso...') {
@@ -198,7 +208,9 @@ function initEventListeners() {
   });
 
   document.getElementById('btn-toggle-settings').addEventListener('click', () => {
-    document.getElementById('settings-card').classList.toggle('hidden');
+    const card = document.getElementById('settings-card');
+    card.classList.toggle('hidden');
+    document.getElementById('btn-toggle-settings').setAttribute('aria-expanded', String(!card.classList.contains('hidden')));
   });
 
   document.getElementById('btn-save-all-keys').addEventListener('click', () => {
@@ -292,10 +304,18 @@ function displayResult(result, kind) {
   badge.textContent = `Risultato — ${result.actualModel || result.requestedModel}` +
     (changed ? ` (richiesto: ${result.requestedModel})` : '');
 
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   container.classList.remove('hidden');
-  container.scrollIntoView({ behavior: 'smooth' });
+  container.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+  // Annuncio breve per i lettori di schermo (non l'intero testo che si aggiorna).
+  announce('Risultato pronto.');
 
   if (typingIntervalId) { clearInterval(typingIntervalId); typingIntervalId = null; }
+
+  if (reduceMotion) {
+    content.textContent = cleaned;
+    return;
+  }
 
   // Effetto digitazione solo nel pannello (nel documento si inserisce in un'unica operazione).
   content.innerHTML = '<span id="typewriter-text"></span><span class="typing-cursor"></span>';
