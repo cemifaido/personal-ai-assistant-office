@@ -37,3 +37,6 @@ build/
 
 # Vecchia architettura (server Node) e script di sviluppo superati: solo in locale
 _obsoleto/
+
+# Documentazione tecnica interna (non pubblicata)
+docs/ARCHITETTURA.md
