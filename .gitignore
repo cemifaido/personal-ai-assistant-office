@@ -33,3 +33,4 @@ spike/**/out/
 outlook/**/bin/
 outlook/**/obj/
 release/
+build/

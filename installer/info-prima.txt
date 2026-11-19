@@ -1,0 +1,30 @@
+PERSONAL AI ASSISTANT - versione beta
+
+Assistente AI per Word, Excel e Outlook classico per Windows, con il modello che scegli tu:
+Google Gemini, OpenAI o Anthropic Claude. Usa la TUA chiave API del provider scelto.
+
+COSA VIENE INSTALLATO (solo per il tuo utente Windows)
+- Word ed Excel: il pannello "Personal AI", caricato dal sito del progetto su GitHub Pages.
+- Outlook classico: il gruppo "Personal AI" nella scheda Home (riassunti e bozze di risposta).
+
+UNA CONFERMA DA AMMINISTRATORE (solo la prima volta su questo PC)
+Office accetta i componenti aggiuntivi di Word ed Excel solo da una cartella di rete.
+L'installazione crea quindi la cartella condivisa \\localhost\PersonalAIAssistant$, in sola
+lettura, che contiene soltanto il file di configurazione del componente. Windows chiedera'
+"Consentire a questa app di apportare modifiche?": rispondi Si' (servono le credenziali di
+un amministratore). Outlook non richiede questa conferma.
+
+I TUOI DATI
+- Le chiavi API restano sul tuo PC: nel pannello di Word/Excel e, per Outlook, cifrate con la
+  protezione dati di Windows. Vengono inviate solo al provider che scegli.
+- I testi che elabori (selezioni, documento intero se lo chiedi, email selezionate) vengono
+  inviati direttamente al provider scelto, secondo le SUE condizioni d'uso. Nessun server del
+  progetto riceve i tuoi dati. Alcuni piani gratuiti dei provider possono usare i dati inviati
+  per migliorare i loro servizi: verifica le condizioni del tuo piano prima di elaborare
+  documenti riservati.
+- Nessuna email viene inviata automaticamente: si apre sempre una bozza da rileggere.
+
+VERSIONE BETA
+I risultati generati dall'AI possono contenere errori: rileggili sempre prima di usarli.
+L'installatore non e' ancora firmato digitalmente: Windows puo' mostrare un avviso
+("Windows ha protetto il PC" -> Ulteriori informazioni -> Esegui comunque).
