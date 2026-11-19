@@ -19,7 +19,8 @@
 #define EncRimuovi FileRead(FileOpen(BuildDir + '\enc-rimuovi.txt'))
 #define EncVerifica FileRead(FileOpen(BuildDir + '\enc-verifica.txt'))
 #define ShareUnc "\\localhost\PersonalAIAssistant$"
-#define CatalogId "{{0B7E4C2A-91D3-4F6E-8A25-6C1D9E3F7A40}"
+; GUID del catalogo SENZA graffe: le graffe si aggiungono nel codice (in [Code] "{{" non viene convertito)
+#define CatalogGuid "0B7E4C2A-91D3-4F6E-8A25-6C1D9E3F7A40"
 #define InclusionId "{{5D8A1F36-2C47-4B9E-A0E3-8F61B2D74C95}"
 #define OutlookKey "Software\Microsoft\Office\Outlook\Addins\PersonalAIAssistant.Outlook"
 #ifndef SiteUrl
@@ -222,10 +223,10 @@ procedure RegisterCatalog(Trusted: Boolean);
 var
   Key: String;
 begin
-  Key := 'Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\{#CatalogId}';
+  Key := 'Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\{' + '{#CatalogGuid}' + '}';
   if Trusted then
   begin
-    RegWriteStringValue(HKCU, Key, 'Id', '{#CatalogId}');
+    RegWriteStringValue(HKCU, Key, 'Id', '{' + '{#CatalogGuid}' + '}');
     RegWriteStringValue(HKCU, Key, 'Url', '{#ShareUnc}');
     RegWriteDWordValue(HKCU, Key, 'Flags', 1);
   end

@@ -110,9 +110,12 @@ if ($Azione -eq 'Verifica') {
     $file = Join-Path $dir 'manifest.xml'
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { exit 1 }
     if ((Get-Item -LiteralPath $file -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { exit 1 }
+    if ($trustedOwners -notcontains (Get-Acl -LiteralPath $file).GetOwner([System.Security.Principal.SecurityIdentifier]).Value) { exit 1 }
     if (-not (Test-NoForeignWrite $file)) { exit 1 }
+    # confronto byte per byte (il confronto di stringhe in PowerShell ignorerebbe maiuscole/minuscole)
     $actual = [IO.File]::ReadAllBytes($file)
-    if ([Convert]::ToBase64String($actual) -ne [Convert]::ToBase64String($expected)) { exit 1 }
+    if ($actual.Length -ne $expected.Length) { exit 1 }
+    for ($i = 0; $i -lt $actual.Length; $i++) { if ($actual[$i] -ne $expected[$i]) { exit 1 } }
     exit 0
   } catch { exit 1 }
 }
@@ -161,6 +164,10 @@ try {
   $target = Join-Path $dir 'manifest.xml'
   if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Force }
   [IO.File]::WriteAllBytes($target, $manifestBytes)
+  # proprietario esplicito (la Verifica lo controlla); si scrive solo il proprietario, i permessi restano ereditati
+  $ownerOnly = New-Object System.Security.AccessControl.FileSecurity
+  $ownerOnly.SetOwner($sidAdmins)
+  (Get-Item -LiteralPath $target -Force).SetAccessControl($ownerOnly)
 
   # 3) condivisione: solo lettura per Everyone, nient'altro
   $everyone = $sidEveryone.Translate([System.Security.Principal.NTAccount]).Value

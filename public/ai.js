@@ -70,7 +70,8 @@ function aiKeyStorage(provider) {
 /** Rimuove la copia su disco e verifica che sia davvero sparita. */
 function aiRemoveStored(name) {
   try { localStorage.removeItem(name); } catch (e) { /* verificato sotto */ }
-  try { return localStorage.getItem(name) === null; } catch (e) { return true; } // storage illeggibile: nessuna copia accessibile
+  // Se lo storage non si puo' rileggere l'esito e' incerto: si considera NON rimosso, cosi' viene segnalato.
+  try { return localStorage.getItem(name) === null; } catch (e) { return false; }
 }
 
 /**
@@ -79,7 +80,10 @@ function aiRemoveStored(name) {
  */
 function aiSetKey(provider, value) {
   delete aiSessionKeys[provider];
-  const removed = aiRemoveStored(AI_KEY_PREFIX + provider);
+  // Si rimuovono sia il nome attuale sia quello delle versioni di prova: nessuna copia puo' tornare alla riapertura.
+  const removedCurrent = aiRemoveStored(AI_KEY_PREFIX + provider);
+  const removedLegacy = aiRemoveStored(`${provider}_api_key`);
+  const removed = removedCurrent && removedLegacy;
   if (!value) return removed;
   if (aiPersistChoice) {
     try { localStorage.setItem(AI_KEY_PREFIX + provider, value); return true; }

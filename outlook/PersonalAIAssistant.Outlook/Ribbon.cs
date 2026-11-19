@@ -47,10 +47,14 @@ namespace PersonalAIAssistant
         {
             var s = AppSettings.Load();
             string intro = null;
-            if (s.LegacyKeysRemain)
-                intro = "Attenzione: nel registro restano chiavi della vecchia macro salvate in chiaro e non sono riuscito a cancellarle. " +
-                        "Riprovero' al prossimo avvio; se il messaggio resta, cancella la chiave di registro " +
-                        @"HKCU\Software\VB and VBA Program Settings\PersonalAIAssistant.";
+            if (s.ImportSaveFailed)
+                intro = "Attenzione: non sono riuscito a salvare la copia cifrata delle chiavi della vecchia macro, " +
+                        "quindi le ho lasciate nel registro (in chiaro) per non perderle. Reinseriscile qui e premi Salva: " +
+                        "al prossimo avvio le rimuovero' dal registro.";
+            else if (s.LegacyKeysRemain)
+                intro = "Attenzione: nel registro restano chiavi della vecchia macro salvate in chiaro. Le rimuovo solo quando " +
+                        "la stessa chiave risulta salvata qui (cifrata): se hai cambiato chiave, o il messaggio resta, cancella " +
+                        @"la chiave di registro HKCU\Software\VB and VBA Program Settings\PersonalAIAssistant.";
             else if (s.ImportedFromMacro)
                 intro = "Ho importato provider e chiavi dalla vecchia macro (ora sono cifrate) e le ho rimosse dal registro.";
             using (var f = new SettingsForm(s, intro)) f.ShowDialog();

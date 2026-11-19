@@ -134,12 +134,43 @@ namespace PersonalAIAssistant
                     if (!string.IsNullOrEmpty(key)) { SetKey(p, key); ImportedFromMacro = true; }
                 }
             }
-            if (ImportedFromMacro) Save();   // prima si salva la copia cifrata, poi si pulisce il registro
+            if (!ImportedFromMacro) return;
+            // Prima si salva la copia cifrata, poi (in CleanLegacyMacro) si pulisce il registro.
+            try { Save(); }
+            catch { ImportedFromMacro = false; ImportSaveFailed = true; }
+        }
+
+        /// <summary>true se la copia cifrata delle chiavi importate non e' stata salvata: il registro resta intatto.</summary>
+        public bool ImportSaveFailed { get; private set; }
+
+        /// <summary>Chiavi in chiaro come risultano DAL FILE SALVATO (non dalla memoria); vuoto se il file manca o non si legge.</summary>
+        private static Dictionary<string, string> ReadSavedKeys()
+        {
+            var result = new Dictionary<string, string>();
+            try
+            {
+                if (!File.Exists(FilePath)) return result;
+                var data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(FilePath, Encoding.UTF8));
+                object v;
+                if (!data.TryGetValue("keys", out v) || !(v is Dictionary<string, object>)) return result;
+                foreach (var kv in (Dictionary<string, object>)v)
+                {
+                    try
+                    {
+                        var plain = ProtectedData.Unprotect(Convert.FromBase64String(Convert.ToString(kv.Value)), Entropy, DataProtectionScope.CurrentUser);
+                        result[kv.Key] = Encoding.UTF8.GetString(plain);
+                    }
+                    catch { /* chiave illeggibile: come se non ci fosse */ }
+                }
+            }
+            catch { }
+            return result;
         }
 
         /// <summary>
         /// Rimuove dal registro i soli valori della vecchia macro (chiavi, provider, modelli) e verifica il risultato.
-        /// Le chiavi si cancellano solo se la copia cifrata esiste gia', per non perderle.
+        /// Una chiave si cancella solo se, rileggendo il file salvato, vi si trova la STESSA chiave
+        /// per lo stesso provider: se il salvataggio e' fallito o la chiave e' diversa, il registro resta intatto.
         /// </summary>
         private void CleanLegacyMacro()
         {
@@ -148,12 +179,18 @@ namespace PersonalAIAssistant
                 using (var k = Registry.CurrentUser.OpenSubKey(LegacyPath, true))
                 {
                     if (k == null) { LegacyKeysRemain = false; return; }
+                    bool saved = File.Exists(FilePath);
+                    var savedKeys = ReadSavedKeys();
                     foreach (var p in ModelCatalog.ProviderNames.Keys)
                     {
-                        if (k.GetValue("key_" + p) != null && GetKey(p).Length > 0) k.DeleteValue("key_" + p, false);
-                        k.DeleteValue("model_" + p, false);
+                        var legacy = k.GetValue("key_" + p) as string;
+                        string stored;
+                        if (legacy != null && savedKeys.TryGetValue(p, out stored) && stored.Length > 0 &&
+                            string.Equals(stored, legacy.Trim(), StringComparison.Ordinal))
+                            k.DeleteValue("key_" + p, false);
+                        if (saved) k.DeleteValue("model_" + p, false);
                     }
-                    k.DeleteValue("provider", false);
+                    if (saved) k.DeleteValue("provider", false);
                 }
                 using (var k = Registry.CurrentUser.OpenSubKey(LegacyPath, false))
                 {
