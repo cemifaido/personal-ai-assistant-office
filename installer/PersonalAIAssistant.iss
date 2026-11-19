@@ -18,7 +18,13 @@
 #define CatalogId "{{0B7E4C2A-91D3-4F6E-8A25-6C1D9E3F7A40}"
 #define InclusionId "{{5D8A1F36-2C47-4B9E-A0E3-8F61B2D74C95}"
 #define OutlookKey "Software\Microsoft\Office\Outlook\Addins\PersonalAIAssistant.Outlook"
-#define InstallPage "https://cemifaido.github.io/personal-ai-assistant-office/installa.html"
+#ifndef SiteUrl
+  #error SiteUrl non definito: compilare con build.ps1
+#endif
+#ifndef RepoUrl
+  #error RepoUrl non definito: compilare con build.ps1
+#endif
+#define InstallPage SiteUrl + "/installa.html"
 
 [Setup]
 AppId={{E3B6F0A2-7C41-4D8E-9B15-2A6F8C3D1E74}
@@ -26,8 +32,8 @@ AppName=Personal AI Assistant
 AppVersion={#AppVer}
 AppVerName=Personal AI Assistant {#AppVer} (beta)
 AppPublisher=Personal AI Assistant
-AppPublisherURL=https://github.com/cemifaido/personal-ai-assistant-office
-AppSupportURL=https://github.com/cemifaido/personal-ai-assistant-office/issues
+AppPublisherURL={#RepoUrl}
+AppSupportURL={#RepoUrl}/issues
 VersionInfoVersion={#AppVer}.0
 PrivilegesRequired=lowest
 DefaultDirName={localappdata}\Programs\PersonalAIAssistant

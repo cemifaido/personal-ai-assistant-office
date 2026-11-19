@@ -1,4 +1,8 @@
 ' =========================================================
+' VERSIONE STORICA - sostituita dall'add-in Outlook (cartella outlook/).
+' L'add-in importa da solo le impostazioni salvate da questa macro.
+
+' =========================================================
 ' Personal AI Assistant per Outlook (POP/SMTP) - chiamate dirette ai provider
 ' Nessun server locale: la macro parla con Gemini / OpenAI / Claude.
 '

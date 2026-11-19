@@ -50,6 +50,7 @@ function showOnboardingIfNeeded() {
 }
 
 function openExternal(url) {
+  url = new URL(url, window.location.href).href; // link relativi al sito del pannello
   try {
     if (typeof Office !== 'undefined' && Office.context && Office.context.ui && Office.context.ui.openBrowserWindow) {
       Office.context.ui.openBrowserWindow(url);

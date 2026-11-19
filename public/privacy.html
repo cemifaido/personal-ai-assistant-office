@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy di Personal AI Assistant</title>
+  <link rel="icon" href="assets/icon-32.png">
+  <link rel="stylesheet" href="pagine.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Informativa privacy</h1>
+    <p class="sub">Personal AI Assistant, versione beta 0.1.0 · aggiornata il 19 novembre 2026</p>
+  </header>
+
+  <div class="card">
+    <p><strong>In breve:</strong> Personal AI Assistant non ha un server proprio e non raccoglie dati. Le tue chiavi API restano sul tuo PC;
+      i testi che decidi di elaborare vanno <strong>direttamente</strong> dal tuo PC al provider di intelligenza artificiale che scegli
+      (Google, OpenAI o Anthropic), che li tratta secondo le sue condizioni.</p>
+  </div>
+
+  <h2>Quali dati vengono inviati, e a chi</h2>
+  <table>
+    <tr><th>Dato</th><th>Dove va</th><th>Quando</th></tr>
+    <tr><td>Testo selezionato in Word, o l'intero documento se usi «Chiedi su tutto il file»</td><td>Provider scelto</td><td>Solo quando premi un pulsante del pannello</td></tr>
+    <tr><td>Struttura del foglio Excel (intestazioni, qualche riga di esempio) e celle selezionate per l'analisi</td><td>Provider scelto</td><td>Solo quando chiedi una formula, un'analisi o un grafico</td></tr>
+    <tr><td>Mittente, data, oggetto e testo delle email selezionate in Outlook</td><td>Provider scelto</td><td>Solo quando chiedi un riassunto o una risposta</td></tr>
+    <tr><td>La tua chiave API</td><td>Solo al provider a cui appartiene</td><td>A ogni richiesta, per autenticarti</td></tr>
+  </table>
+  <p>Testi molto lunghi vengono troncati prima dell'invio e il troncamento viene sempre segnalato.</p>
+
+  <h2>Le condizioni del provider</h2>
+  <p>Usi la <strong>tua</strong> chiave e il <strong>tuo</strong> contratto con il provider: conservazione dei dati, uso per l'addestramento dei modelli
+    e luogo del trattamento dipendono dal provider, dal piano (gratuito o a pagamento) e dal paese. Alcuni piani gratuiti consentono al provider
+    di usare i dati inviati per migliorare i propri servizi. <strong>Prima di elaborare documenti riservati o dati personali di altre persone,
+    verifica le condizioni del tuo piano</strong>:</p>
+  <ul>
+    <li>Google Gemini API: <a href="https://ai.google.dev/gemini-api/terms">condizioni d'uso</a></li>
+    <li>OpenAI: <a href="https://openai.com/policies/">policy</a></li>
+    <li>Anthropic: <a href="https://www.anthropic.com/legal/commercial-terms">condizioni commerciali</a> e <a href="https://www.anthropic.com/legal/privacy">privacy</a></li>
+  </ul>
+  <p>Se usi Personal AI Assistant per lavoro con dati personali di terzi (clienti, dipendenti, corrispondenti), la valutazione degli obblighi
+    di protezione dei dati spetta a te o alla tua organizzazione: l'uso di una chiave personale non la sostituisce.</p>
+
+  <h2>Dove restano le chiavi</h2>
+  <ul>
+    <li><strong>Word ed Excel:</strong> nella memoria locale del pannello sul tuo PC, per il tuo utente. Si cancellano con il pulsante <em>Cancella</em> nelle impostazioni del pannello.</li>
+    <li><strong>Outlook:</strong> nel file <code>%APPDATA%\PersonalAIAssistant\outlook-settings.json</code>, cifrate con la protezione dati di Windows (leggibili solo dal tuo utente Windows su quel PC). Si cancellano da <em>Impostazioni → Cancella chiavi</em>.</li>
+  </ul>
+  <p>La cifratura protegge le chiavi a riposo, non da programmi dannosi eseguiti con il tuo stesso utente.</p>
+
+  <h2>Cosa non facciamo</h2>
+  <ul>
+    <li>Nessun server del progetto riceve i tuoi testi o le tue chiavi.</li>
+    <li>Nessuna statistica d'uso, nessun tracciamento, nessuna pubblicità.</li>
+    <li>Nessuna email viene inviata automaticamente: Outlook apre sempre una bozza da rileggere.</li>
+  </ul>
+
+  <h2>Servizi tecnici di terze parti</h2>
+  <ul>
+    <li>Il pannello di Word/Excel è pubblicato su <strong>GitHub Pages</strong>: quando si apre, il tuo PC scarica le pagine da GitHub, che come ogni sito web può registrare dati tecnici della connessione (es. indirizzo IP).</li>
+    <li>Il pannello carica la libreria <strong>Office.js</strong> dal sito di Microsoft, come tutti i componenti aggiuntivi di Office.</li>
+  </ul>
+
+  <h2>Istruzioni contenute nei documenti</h2>
+  <p>Documenti ed email possono contenere testo scritto per ingannare un'intelligenza artificiale. Il pannello lo segnala al modello come materiale da elaborare
+    e non come istruzioni, ma non può garantirlo del tutto: rileggi sempre il risultato prima di usarlo.</p>
+
+  <footer>Domande o segnalazioni: apri una segnalazione nel repository del progetto. · <a href="installa.html">Installazione</a></footer>
+</main>
+</body>
+</html>

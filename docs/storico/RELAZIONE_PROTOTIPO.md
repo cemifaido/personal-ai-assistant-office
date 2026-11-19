@@ -1,10 +1,10 @@
-> **Nota (18/11/2026):** questa relazione descrive la prima versione con server Node locale. Il progetto ora si chiama **Personal AI Assistant** e non usa più il server: il pannello e la macro chiamano direttamente i provider. Vedi [README.md](README.md). Le affermazioni qui sotto non sono state riverificate.
+> **Documento storico.** Descrive il prototipo iniziale (novembre 2026) con server Node locale, poi sostituito: vedi il README e il CHANGELOG. Il progetto ora si chiama **Personal AI Assistant** e non usa più il server: il pannello e la macro chiamano direttamente i provider. Vedi [README.md](README.md). Le affermazioni qui sotto non sono state riverificate.
 
 # Relazione di Progetto: Office AI Copilot (Multi-Modello)
 
 **Data:** 18 Novembre 2026  
 **Ambiente Operativo:** Microsoft Office LTSC Professional Plus 2024 (Windows x64 / Office x86)  
-**Workspace:** `d:\Share\py\_puttanate\plugin_word`
+**Workspace:** `<cartella del progetto>`
 
 ---
 
@@ -91,13 +91,11 @@ flowchart TD
 
 ## 4. Riepilogo File del Progetto
 
-Tutti i file sorgente sono archiviati e pronti all'uso nella cartella:  
-📂 **[plugin_word](file:///d:/Share/py/_puttanate/plugin_word)**
 
-* **[`server.js`](file:///d:/Share/py/_puttanate/plugin_word/server.js):** Gateway HTTPS locale multi-modello (Gemini, Claude, OpenAI).
-* **[`avvia_server.bat`](file:///d:/Share/py/_puttanate/plugin_word/avvia_server.bat):** Script di avvio rapido con un clic.
-* **[`.env`](file:///d:/Share/py/_puttanate/plugin_word/.env):** Gestore sicuro delle chiavi API.
-* **[`public/taskpane.js`](file:///d:/Share/py/_puttanate/plugin_word/public/taskpane.js):** Controller del pannello laterale con live typewriter e controllo tipografico Word/Excel.
-* **[`public/index.html`](file:///d:/Share/py/_puttanate/plugin_word/public/index.html) & [`public/style.css`](file:///d:/Share/py/_puttanate/plugin_word/public/style.css):** Interfaccia utente moderna Fluent UI.
-* **[`manifest-word-excel.xml`](file:///d:/Share/py/_puttanate/plugin_word/manifest-word-excel.xml):** Descrittore per l'installazione in Word ed Excel.
-* **[`outlook_macro.vba`](file:///d:/Share/py/_puttanate/plugin_word/outlook_macro.vba):** Codice VBA completo per l'integrazione in Outlook POP/SMTP con supporto multi-email.
+* **[`server.js`]:** Gateway HTTPS locale multi-modello (Gemini, Claude, OpenAI).
+* **[`avvia_server.bat`]:** Script di avvio rapido con un clic.
+* **[`.env`]:** Gestore sicuro delle chiavi API.
+* **[`public/taskpane.js`]:** Controller del pannello laterale con live typewriter e controllo tipografico Word/Excel.
+* **[`public/index.html`] & [`public/style.css`]:** Interfaccia utente moderna Fluent UI.
+* **[`manifest-word-excel.xml`]:** Descrittore per l'installazione in Word ed Excel.
+* **[`outlook_macro.vba`]:** Codice VBA completo per l'integrazione in Outlook POP/SMTP con supporto multi-email.

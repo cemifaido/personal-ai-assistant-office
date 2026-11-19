@@ -10,7 +10,9 @@
 #>
 param(
   [string]$Versione = '0.1.0',
-  [string]$BaseUrl = 'https://cemifaido.github.io/personal-ai-assistant-office'
+  # Unico punto con gli indirizzi del progetto (sito GitHub Pages e repository).
+  [string]$BaseUrl = 'https://cemifaido.github.io/personal-ai-assistant-office',
+  [string]$RepoUrl = 'https://github.com/cemifaido/personal-ai-assistant-office'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,7 +61,7 @@ $pub = $cert.PublicKey.Key.ToXmlString($false)
 [IO.File]::WriteAllText("$build\publickey.txt", $pub, [Text.Encoding]::ASCII)
 
 Step "Installatore"
-& $iscc /Q "/DAppVer=$Versione" "/DBuildDir=$build" (Join-Path $root 'installer\PersonalAIAssistant.iss')
+& $iscc /Q "/DAppVer=$Versione" "/DBuildDir=$build" "/DSiteUrl=$($BaseUrl.TrimEnd('/'))" "/DRepoUrl=$($RepoUrl.TrimEnd('/'))" (Join-Path $root 'installer\PersonalAIAssistant.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Compilazione installatore non riuscita.' }
 
 $setup = Join-Path $release "PersonalAIAssistant-$Versione-Setup.exe"

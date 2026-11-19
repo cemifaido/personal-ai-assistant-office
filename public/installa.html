@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Installare Personal AI Assistant</title>
+  <link rel="icon" href="assets/icon-32.png">
+  <link rel="stylesheet" href="pagine.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Personal AI Assistant <span class="badge">beta 0.1.0</span></h1>
+    <p class="sub">Assistente AI per Word, Excel e Outlook per Windows, con Google Gemini, OpenAI o Anthropic Claude e la tua chiave API.</p>
+  </header>
+
+  <div class="card">
+    <p><strong>Cosa fa:</strong> in Word riscrive, corregge, riassume e traduce il testo selezionato o risponde a domande sul documento;
+      in Excel genera formule in italiano, analizza i dati e crea grafici; in Outlook riassume le email selezionate e prepara bozze di risposta.</p>
+    <p><a class="btn" id="download" href="#">Scarica l'installazione</a></p>
+    <p class="sub" id="download-note">Scegli il file <code>PersonalAIAssistant-…-Setup.exe</code> nell'ultima versione pubblicata.</p>
+  </div>
+
+  <h2>Requisiti</h2>
+  <ul>
+    <li>Windows 10 o 11 e Microsoft Office desktop per Windows (Word, Excel e Outlook classico).
+      Provato su Office LTSC 2024 a 32 bit; altre edizioni (Microsoft 365, 2019, 2021) dovrebbero funzionare ma non sono ancora state verificate.</li>
+    <li>Per Word ed Excel, <strong>una conferma da amministratore</strong> la prima volta su ogni PC (vedi sotto).</li>
+    <li>Una chiave API di almeno un provider: <a href="https://aistudio.google.com/apikey">Google Gemini</a>,
+      <a href="https://platform.openai.com/api-keys">OpenAI</a> o <a href="https://console.anthropic.com/settings/keys">Anthropic Claude</a>.</li>
+    <li><strong>Non supportati:</strong> il nuovo Outlook per Windows, Outlook sul web e Office per Mac.</li>
+  </ul>
+
+  <h2>Installazione</h2>
+
+  <h3>1. Avvisi di Windows (installazione non ancora firmata)</h3>
+  <p>Questa è una versione beta e l'installatore <strong>non è firmato digitalmente</strong>: Windows non conosce l'editore e può mostrare avvisi. Non indica un problema nel file.</p>
+  <ol>
+    <li>Se il browser avvisa che il file può essere pericoloso, scegli <em>Mantieni</em>.</li>
+    <li>Prima di aprirlo: clic destro sul file → <em>Proprietà</em> → spunta <strong>Annulla blocco</strong> → <em>OK</em>.</li>
+    <li>Se compare <em>«Windows ha protetto il PC»</em>: <strong>Ulteriori informazioni</strong> → <strong>Esegui comunque</strong>.</li>
+  </ol>
+  <p>Per essere sicuro che il file sia quello originale, confronta l'impronta SHA-256 con quella indicata nella pagina della versione:</p>
+  <pre>Get-FileHash .\PersonalAIAssistant-0.1.0-Setup.exe -Algorithm SHA256</pre>
+
+  <h3>2. Avanti, avanti, fine</h3>
+  <p>Chiudi Word, Excel e Outlook e avvia l'installazione. A metà, Windows chiede <em>«Consentire a questa app di apportare modifiche?»</em> per
+    <strong>Windows PowerShell</strong> (editore verificato: Microsoft): rispondi <strong>Sì</strong>. Se il tuo utente non è amministratore, servono nome e password di un amministratore.</p>
+  <img class="shot" src="assets/guida/uac.png" alt="Richiesta di Windows: consentire a Windows PowerShell di apportare modifiche" width="450">
+  <div class="note"><strong>Perché serve:</strong> Office accetta i componenti aggiuntivi di Word ed Excel solo da una cartella di rete.
+    L'installazione crea sul PC la cartella condivisa nascosta <code>\\localhost\PersonalAIAssistant$</code>, <strong>in sola lettura</strong>,
+    che contiene soltanto il file di configurazione del componente. Succede una sola volta per PC. Outlook non la richiede.</div>
+
+  <h3>3. Word ed Excel: aggiungi il componente (una sola volta)</h3>
+  <p>Apri Word (poi lo stesso in Excel) e vai su <strong>Home → Componenti aggiuntivi (Add-ins) → Altri componenti aggiuntivi</strong>,
+    scheda <strong>CARTELLA CONDIVISA</strong>, seleziona <strong>Personal AI Assistant</strong> e premi <strong>Aggiungi</strong>.</p>
+  <img class="shot" src="assets/guida/aggiungi.png" alt="Finestra Componenti aggiuntivi di Office, scheda Cartella condivisa, pulsante Aggiungi" width="560">
+  <p>Da quel momento trovi la scheda <strong>Personal AI</strong> nella barra in alto, a ogni avvio. Il componente non compare nell'elenco rapido del menu <em>Add-ins</em>: si usa dalla scheda.</p>
+  <img class="shot" src="assets/guida/scheda.png" alt="Scheda Personal AI con il pulsante Apri assistente" width="760">
+
+  <h3>4. La tua chiave API</h3>
+  <p>Al primo utilizzo il pannello apre le impostazioni (ingranaggio): premi <strong>Ottieni chiave</strong> accanto al provider, crea la chiave nel suo sito, incollala e premi <strong>Salva chiavi</strong>.
+    La più semplice da ottenere è quella di Google Gemini. In Outlook: <em>Home → Personal AI → Impostazioni</em>.</p>
+
+  <h3>5. Outlook classico</h3>
+  <p>Nella scheda <strong>Home</strong> trovi il gruppo <strong>Personal AI</strong>: <em>Riassumi selezionate</em> (seleziona più email con Ctrl+clic),
+    <em>Rispondi con AI</em> e <em>Impostazioni</em>. Si apre sempre una bozza da rileggere: nessuna email viene inviata automaticamente.</p>
+
+  <h2>I tuoi dati</h2>
+  <p>Le chiavi restano sul tuo PC e i testi vanno direttamente al provider che scegli, senza passare da server del progetto.
+    Dettagli nell'<a href="privacy.html">informativa privacy</a>.</p>
+
+  <h2>Disinstallazione</h2>
+  <p><em>Impostazioni → App → App installate → Personal AI Assistant → Disinstalla</em>. Alla fine viene chiesto se rimuovere anche la cartella condivisa del PC
+    (rispondi No se altri utenti del PC usano Personal AI Assistant). Le chiavi del pannello di Word/Excel si cancellano dal pannello stesso (<em>Cancella</em>) prima di disinstallare.</p>
+
+  <h2>Limiti noti della beta</h2>
+  <ul>
+    <li>Sui PC aziendali senza diritti di amministratore, o con software che controlla le elevazioni, l'installazione di Word/Excel può richiedere l'intervento dell'IT. Outlook si installa comunque.</li>
+    <li>I risultati dell'AI possono contenere errori: rileggili sempre. In Word si annulla con un solo Ctrl+Z.</li>
+    <li>Formule Excel in italiano o in inglese; Excel in altre lingue riceve le formule in inglese.</li>
+  </ul>
+
+  <footer>
+    Personal AI Assistant è un progetto indipendente, non affiliato a Microsoft, Google, OpenAI o Anthropic.
+    · <a id="repo-link" href="#">Codice sorgente e segnalazioni</a> · Licenza MIT
+  </footer>
+</main>
+<script>
+  // Indirizzo del repository ricavato da quello del sito (https://<proprietario>.github.io/<repository>/).
+  (function () {
+    var owner = location.hostname.split('.')[0];
+    var repo = location.pathname.split('/').filter(Boolean)[0] || '';
+    if (location.hostname.endsWith('github.io') && repo) {
+      var base = 'https://github.com/' + owner + '/' + repo;
+      document.getElementById('download').href = base + '/releases/latest';
+      document.getElementById('repo-link').href = base;
+    }
+  })();
+</script>
+</body>
+</html>
