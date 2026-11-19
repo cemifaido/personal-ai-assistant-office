@@ -11,6 +11,15 @@ provider (piano gratuito o a pagamento, limiti, costi e condizioni sono i suoi).
 Senza chiave il pannello si apre ma non puo' elaborare nulla.
 Per iniziare gratis: chiave Google AI Studio (https://aistudio.google.com/apikey).
 
+PROTEGGI LA TUA CHIAVE API
+Chi ottiene una copia della chiave puo' usarla a tuo carico. Per ogni provider
+crea una chiave dedicata a Personal AI Assistant e concedile solo i permessi
+necessari. Se disponibili, imposta un limite di spesa e attiva gli avvisi di
+consumo. Un avviso ti informa, ma da solo non blocca gli addebiti.
+Se sospetti un uso non autorizzato, revoca subito la chiave sul sito del
+provider, controlla i consumi e inserisci nel plugin una nuova chiave.
+Cancellare la chiave dal pannello non disattiva eventuali copie.
+
 COSA VIENE INSTALLATO (solo per il tuo utente Windows)
 - Word, Excel e PowerPoint: il pannello "Personal AI", caricato dal sito del progetto su GitHub Pages.
 - Outlook classico: il gruppo "Personal AI" nella scheda Home (riassunti e bozze di risposta).
@@ -23,8 +32,10 @@ lettura, che contiene soltanto il file di configurazione del componente. Windows
 un amministratore). Outlook non richiede questa conferma.
 
 I TUOI DATI
-- Le chiavi API restano sul tuo PC: nel pannello di Word/Excel e, per Outlook, cifrate con la
-  protezione dati di Windows. Vengono inviate solo al provider che scegli.
+- In Word, Excel e PowerPoint le chiavi salvate restano nella memoria locale del
+  pannello e sono leggibili dal suo codice. In Outlook classico sono cifrate
+  per il tuo utente Windows. Ogni richiesta API invia la chiave al relativo
+  provider tramite HTTPS.
 - I testi che elabori (selezioni, documento intero se lo chiedi, email selezionate) vengono
   inviati direttamente al provider scelto, secondo le SUE condizioni d'uso. Nessun server del
   progetto riceve i tuoi dati. Alcuni piani gratuiti dei provider possono usare i dati inviati
