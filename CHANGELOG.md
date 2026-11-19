@@ -2,6 +2,24 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/); versioni secondo [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.2.0] - beta - in preparazione
+
+### Aggiunto
+- **Nuovi provider** con API compatibile OpenAI, nel pannello e in Outlook: **Qwen** (Alibaba Cloud, servizio internazionale), **MiniMax**, **DeepSeek** e **OpenRouter**. Chiavi in una sezione comprimibile "Altri provider"; verifica della chiave ed elenco modelli letti dal provider.
+- **Conferma per i provider con sede in Cina** (Qwen, MiniMax, DeepSeek): prima di salvarne la chiave il pannello e Outlook spiegano dove finiscono i dati e chiedono un OK esplicito.
+- **"Altro modello…"** nel pannello: si puo' usare un modello non presente nel catalogo scrivendone l'ID, con i suggerimenti dall'elenco del provider; in Outlook il campo modello e' modificabile.
+- **Outlook: modello locale o in rete interna** (Ollama, llama-server, LM Studio), senza chiave obbligatoria: indirizzo accettato solo verso questo PC o la rete privata.
+- Outlook: indirizzo API dei provider compatibili modificabile nelle Impostazioni (solo https), con ripristino del predefinito.
+- **Controllo settimanale dei provider** (GitHub Actions): indirizzi raggiungibili e chiamate dal pannello accettate; con chiavi nei segreti del repository anche i modelli del catalogo. Se qualcosa cambia apre una segnalazione.
+- Rimozione dei blocchi di ragionamento (`<think>`) dalle risposte dei modelli che li includono nel testo.
+
+### Modificato
+- Finestra Impostazioni di Outlook riorganizzata per provider (modello, indirizzo e chiave del provider scelto).
+- La versione del manifest di Word/Excel/PowerPoint non segue piu' quella del programma: un aggiornamento che non lo cambia non richiede di nuovo la conferma da amministratore.
+
+### Sicurezza
+- Pannello: salvataggio delle chiavi verificato rileggendo lo storage; copie non rimosse segnalate anche per il nome attuale (correzioni e test di Codex).
+
 ## [0.1.0] - beta - 2026-11-19
 
 Prima versione pubblica. Sostituisce il prototipo con server Node locale e macro VBA.

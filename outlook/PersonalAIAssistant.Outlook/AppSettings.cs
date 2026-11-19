@@ -21,6 +21,8 @@ namespace PersonalAIAssistant
 
         public string Provider = "gemini";
         public Dictionary<string, string> Models = new Dictionary<string, string>();
+        /// <summary>Indirizzi modificati dall'utente per i provider compatibili OpenAI (assente = predefinito).</summary>
+        public Dictionary<string, string> BaseUrls = new Dictionary<string, string>();
         private Dictionary<string, string> protectedKeys = new Dictionary<string, string>();
 
         public static string FolderPath
@@ -35,6 +37,19 @@ namespace PersonalAIAssistant
             string id;
             if (Models.TryGetValue(provider, out id) && !string.IsNullOrEmpty(id)) return id;
             return ModelCatalog.DefaultFor(provider).Id;
+        }
+
+        /// <summary>Indirizzo da usare per un provider compatibile: quello salvato (se valido) o il predefinito.</summary>
+        public string BaseUrlFor(string provider)
+        {
+            string url;
+            if (BaseUrls.TryGetValue(provider, out url))
+            {
+                var ok = ModelCatalog.NormalizeBaseUrl(url, provider);
+                if (ok != null) return ok;
+            }
+            string def;
+            return ModelCatalog.CompatBaseUrls.TryGetValue(provider, out def) ? def : null;
         }
 
         public string GetKey(string provider)
@@ -58,6 +73,7 @@ namespace PersonalAIAssistant
 
         public bool HasAnyKey()
         {
+            if (Provider == ModelCatalog.Local) return true;   // il modello locale non usa chiavi
             foreach (var p in ModelCatalog.ProviderNames.Keys) if (GetKey(p).Length > 0) return true;
             return false;
         }
@@ -74,6 +90,9 @@ namespace PersonalAIAssistant
                     if (data.TryGetValue("provider", out v) && v is string) s.Provider = (string)v;
                     if (data.TryGetValue("models", out v) && v is Dictionary<string, object>)
                         foreach (var kv in (Dictionary<string, object>)v) s.Models[kv.Key] = Convert.ToString(kv.Value);
+                    if (data.TryGetValue("urls", out v) && v is Dictionary<string, object>)
+                        foreach (var kv in (Dictionary<string, object>)v)
+                            if (ModelCatalog.IsCompatible(kv.Key)) s.BaseUrls[kv.Key] = Convert.ToString(kv.Value);
                     if (data.TryGetValue("keys", out v) && v is Dictionary<string, object>)
                         foreach (var kv in (Dictionary<string, object>)v) s.protectedKeys[kv.Key] = Convert.ToString(kv.Value);
                 }
@@ -97,6 +116,7 @@ namespace PersonalAIAssistant
                 { "version", 1 },
                 { "provider", Provider },
                 { "models", Models },
+                { "urls", BaseUrls },
                 { "keys", protectedKeys },
             };
             var tmp = FilePath + ".tmp";

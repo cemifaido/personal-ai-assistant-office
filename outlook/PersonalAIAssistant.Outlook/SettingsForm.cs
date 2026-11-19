@@ -8,15 +8,27 @@ using System.Windows.Forms;
 
 namespace PersonalAIAssistant
 {
-    /// <summary>Impostazioni: provider, modello per provider e chiavi API (salvate cifrate).</summary>
+    /// <summary>
+    /// Impostazioni: provider; per il provider scelto modello (dal catalogo o scritto a mano), indirizzo API
+    /// (solo provider compatibili OpenAI, modificabile) e chiave (salvata cifrata).
+    /// </summary>
     internal sealed class SettingsForm : Form
     {
         private readonly AppSettings settings;
         private readonly ComboBox providerBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
-        private readonly ComboBox modelBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
-        private readonly Dictionary<string, TextBox> keyBoxes = new Dictionary<string, TextBox>();
+        private readonly ComboBox modelBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown };
+        private readonly TextBox urlBox = new TextBox();
+        private readonly LinkLabel urlReset = new LinkLabel { Text = "Predefinito", AutoSize = true };
+        private readonly TextBox keyBox = new TextBox { UseSystemPasswordChar = true };
+        private readonly LinkLabel keyLink = new LinkLabel { Text = "Ottieni chiave", AutoSize = true };
+        private readonly Label keysSummary = new Label { AutoSize = false, ForeColor = Color.DimGray };
         private readonly Label status = new Label { AutoSize = false, ForeColor = Color.DimGray };
-        private readonly Dictionary<string, string> modelChoice = new Dictionary<string, string>();
+
+        // Bozze per provider: si salvano tutte insieme con "Salva".
+        private readonly Dictionary<string, string> keyDraft = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> modelDraft = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> urlDraft = new Dictionary<string, string>();
+        private string shownProvider;
 
         public SettingsForm(AppSettings settings, string intro)
         {
@@ -26,106 +38,194 @@ namespace PersonalAIAssistant
             StartPosition = FormStartPosition.CenterScreen;
             MinimizeBox = false; MaximizeBox = false;
             Font = new Font("Segoe UI", 9F);
-            ClientSize = new Size(520, 400);
+            ClientSize = new Size(540, 470);
 
             int y = 12;
             if (!string.IsNullOrEmpty(intro))
             {
-                Controls.Add(new Label { Text = intro, Location = new Point(14, y), Size = new Size(492, 48), ForeColor = Color.FromArgb(26, 115, 232) });
+                Controls.Add(new Label { Text = intro, Location = new Point(14, y), Size = new Size(512, 48), ForeColor = Color.FromArgb(26, 115, 232) });
                 y += 52;
             }
 
             Controls.Add(new Label { Text = "Provider:", Location = new Point(14, y + 4), AutoSize = true });
-            providerBox.Location = new Point(110, y); providerBox.Size = new Size(396, 24);
+            providerBox.Location = new Point(120, y); providerBox.Size = new Size(406, 24);
             foreach (var kv in ModelCatalog.ProviderNames) providerBox.Items.Add(kv.Value);
-            Controls.Add(providerBox); y += 32;
+            Controls.Add(providerBox); y += 34;
 
             Controls.Add(new Label { Text = "Modello:", Location = new Point(14, y + 4), AutoSize = true });
-            modelBox.Location = new Point(110, y); modelBox.Size = new Size(396, 24);
-            Controls.Add(modelBox); y += 40;
+            modelBox.Location = new Point(120, y); modelBox.Size = new Size(406, 24);
+            Controls.Add(modelBox); y += 26;
+            Controls.Add(new Label { Text = "Scegli dall'elenco o scrivi l'ID esatto di un altro modello del provider.",
+                                     Location = new Point(120, y), Size = new Size(406, 16), ForeColor = Color.DimGray }); y += 24;
 
-            Controls.Add(new Label { Text = "Chiavi API (cifrate per il tuo utente Windows, inviate solo al provider scelto):", Location = new Point(14, y), Size = new Size(492, 18) });
-            y += 22;
-            foreach (var kv in ModelCatalog.ProviderNames)
-            {
-                var p = kv.Key;
-                Controls.Add(new Label { Text = kv.Value + ":", Location = new Point(14, y + 4), AutoSize = true });
-                var tb = new TextBox { UseSystemPasswordChar = true, Location = new Point(150, y), Size = new Size(250, 24), Text = settings.GetKey(p) };
-                keyBoxes[p] = tb; Controls.Add(tb);
-                var link = new LinkLabel { Text = "Ottieni chiave", Location = new Point(408, y + 4), AutoSize = true };
-                var url = ModelCatalog.KeyUrls[p];
-                link.LinkClicked += (s, e) => { try { Process.Start(url); } catch { } };
-                Controls.Add(link);
-                y += 30;
-            }
+            Controls.Add(new Label { Text = "Indirizzo API:", Location = new Point(14, y + 4), AutoSize = true });
+            urlBox.Location = new Point(120, y); urlBox.Size = new Size(330, 24);
+            urlReset.Location = new Point(458, y + 4);
+            Controls.Add(urlBox); Controls.Add(urlReset); y += 26;
+            Controls.Add(new Label { Text = "Provider su Internet: cambialo solo se il provider lo ha cambiato. Locale: Ollama :11434/v1, llama-server :8080/v1, LM Studio :1234/v1, anche su un PC della rete.",
+                                     Location = new Point(120, y), Size = new Size(406, 16), ForeColor = Color.DimGray }); y += 26;
 
-            status.Location = new Point(14, y + 6); status.Size = new Size(492, 60); Controls.Add(status);
+            Controls.Add(new Label { Text = "Chiave API:", Location = new Point(14, y + 4), AutoSize = true });
+            keyBox.Location = new Point(120, y); keyBox.Size = new Size(320, 24);
+            keyLink.Location = new Point(448, y + 4);
+            Controls.Add(keyBox); Controls.Add(keyLink); y += 28;
+            Controls.Add(new Label { Text = "Le chiavi sono cifrate per il tuo utente Windows e inviate solo al provider a cui appartengono.",
+                                     Location = new Point(120, y), Size = new Size(406, 16), ForeColor = Color.DimGray }); y += 24;
 
-            var verify = new Button { Text = "Verifica chiavi", Location = new Point(14, 360), Size = new Size(110, 28) };
-            var clear = new Button { Text = "Cancella chiavi", Location = new Point(130, 360), Size = new Size(110, 28) };
-            var ok = new Button { Text = "Salva", Location = new Point(330, 360), Size = new Size(84, 28) };
-            var cancel = new Button { Text = "Annulla", Location = new Point(422, 360), Size = new Size(84, 28), DialogResult = DialogResult.Cancel };
+            keysSummary.Location = new Point(14, y); keysSummary.Size = new Size(512, 34); Controls.Add(keysSummary); y += 36;
+            status.Location = new Point(14, y); status.Size = new Size(512, 430 - y); Controls.Add(status);
+
+            var verify = new Button { Text = "Verifica chiavi", Location = new Point(14, 430), Size = new Size(110, 28) };
+            var clear = new Button { Text = "Cancella chiavi", Location = new Point(130, 430), Size = new Size(110, 28) };
+            var ok = new Button { Text = "Salva", Location = new Point(350, 430), Size = new Size(84, 28) };
+            var cancel = new Button { Text = "Annulla", Location = new Point(442, 430), Size = new Size(84, 28), DialogResult = DialogResult.Cancel };
             Controls.AddRange(new Control[] { verify, clear, ok, cancel });
             AcceptButton = ok; CancelButton = cancel;
 
-            foreach (var p in ModelCatalog.ProviderNames.Keys) modelChoice[p] = settings.ModelFor(p);
-            providerBox.SelectedIndex = Math.Max(0, ModelCatalog.ProviderNames.Keys.ToList().IndexOf(settings.Provider));
-            FillModels();
-            providerBox.SelectedIndexChanged += (s, e) => FillModels();
-            modelBox.SelectedIndexChanged += (s, e) =>
+            foreach (var p in ModelCatalog.ProviderNames.Keys)
             {
-                var m = modelBox.SelectedItem as ModelCatalog.Model;
-                if (m != null) modelChoice[m.Provider] = m.Id;
-            };
+                keyDraft[p] = settings.GetKey(p);
+                modelDraft[p] = settings.ModelFor(p);
+                if (ModelCatalog.IsCompatible(p)) urlDraft[p] = settings.BaseUrlFor(p);
+            }
+            providerBox.SelectedIndex = Math.Max(0, ModelCatalog.ProviderNames.Keys.ToList().IndexOf(settings.Provider));
+            ShowProvider();
+            providerBox.SelectedIndexChanged += (s, e) => { StoreShown(); ShowProvider(); };
+            keyBox.TextChanged += (s, e) => { if (shownProvider != null) { keyDraft[shownProvider] = keyBox.Text; UpdateSummary(); } };
+            urlReset.LinkClicked += (s, e) => { urlBox.Text = ModelCatalog.CompatBaseUrls[shownProvider]; };
+            keyLink.LinkClicked += (s, e) => { try { Process.Start(ModelCatalog.KeyUrls[shownProvider]); } catch { } };
 
             ok.Click += (s, e) => { SaveAndClose(); };
             clear.Click += (s, e) =>
             {
-                foreach (var tb in keyBoxes.Values) tb.Text = "";
+                foreach (var p in keyDraft.Keys.ToList()) keyDraft[p] = "";
+                keyBox.Text = "";
+                UpdateSummary();
                 status.Text = "Chiavi cancellate: premi Salva per confermare.";
             };
             verify.Click += async (s, e) =>
             {
+                StoreShown();
                 verify.Enabled = false; status.Text = "Verifica in corso...";
                 var lines = new List<string>();
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
                 {
-                    foreach (var kv in keyBoxes)
+                    foreach (var p in ModelCatalog.ProviderNames.Keys)
                     {
-                        var key = kv.Value.Text.Trim();
-                        var name = ModelCatalog.ProviderNames[kv.Key];
-                        if (key.Length == 0) { lines.Add(name + ": nessuna chiave"); continue; }
+                        var key = (keyDraft[p] ?? "").Trim();
+                        if (key.Length == 0 && !(p == ModelCatalog.Local && SelectedProvider == p)) continue;
+                        var name = ModelCatalog.ProviderNames[p];
                         try
                         {
-                            var ids = await AiClient.ListModelsAsync(kv.Key, key, cts.Token);
-                            var missing = ModelCatalog.Models.Where(m => m.Provider == kv.Key && !ids.Contains(m.Id)).Select(m => m.Id).ToList();
-                            lines.Add(name + ": valida" + (missing.Count > 0 ? " (modelli non trovati: " + string.Join(", ", missing) + ")" : ""));
+                            var ids = await AiClient.ListModelsAsync(p, key, cts.Token, ModelCatalog.IsCompatible(p) ? urlDraft[p] : null);
+                            var model = modelDraft[p];
+                            lines.Add(name + ": valida" + (ids.Contains(model) ? "" : " (il modello " + model + " non risulta nell'elenco del provider)"));
                         }
                         catch (Exception ex) { lines.Add(name + ": " + ex.Message.Split('\n')[0]); }
                     }
                 }
-                status.Text = string.Join("\n", lines);
+                status.Text = lines.Count > 0 ? string.Join("\n", lines) : "Nessuna chiave da verificare.";
                 verify.Enabled = true;
             };
         }
 
         private string SelectedProvider { get { return ModelCatalog.ProviderNames.Keys.ElementAt(Math.Max(0, providerBox.SelectedIndex)); } }
 
-        private void FillModels()
+        /// <summary>Copia nei draft quello che e' scritto nei campi del provider mostrato.</summary>
+        private void StoreShown()
+        {
+            if (shownProvider == null) return;
+            var m = modelBox.SelectedItem as ModelCatalog.Model;
+            modelDraft[shownProvider] = m != null && modelBox.Text == m.Label ? m.Id : modelBox.Text.Trim();
+            keyDraft[shownProvider] = keyBox.Text;
+            if (ModelCatalog.IsCompatible(shownProvider)) urlDraft[shownProvider] = urlBox.Text.Trim();
+        }
+
+        private void ShowProvider()
         {
             var p = SelectedProvider;
+            shownProvider = null;   // evita che gli eventi dei campi scrivano nel provider sbagliato
             modelBox.Items.Clear();
             foreach (var m in ModelCatalog.Models.Where(m => m.Provider == p)) modelBox.Items.Add(m);
-            var current = ModelCatalog.Find(p, modelChoice[p]);
-            modelBox.SelectedItem = current ?? modelBox.Items[0];
+            var current = ModelCatalog.Find(p, modelDraft[p]);
+            if (current != null) modelBox.SelectedItem = current; else modelBox.Text = modelDraft[p];
+
+            bool compat = ModelCatalog.IsCompatible(p);
+            urlBox.Enabled = compat; urlReset.Visible = compat;
+            urlBox.Text = compat ? urlDraft[p] : "(fisso per questo provider)";
+            bool local = p == ModelCatalog.Local;
+            keyBox.Text = keyDraft[p];
+            keyLink.Text = local ? "Scarica Ollama" : "Ottieni chiave";
+            shownProvider = p;
+            UpdateSummary();
+        }
+
+        private void UpdateSummary()
+        {
+            var with = ModelCatalog.ProviderNames.Where(kv => kv.Key != ModelCatalog.Local && (keyDraft[kv.Key] ?? "").Trim().Length > 0).Select(kv => kv.Value).ToList();
+            if (shownProvider == ModelCatalog.Local)
+            {
+                keysSummary.Text = "Chiave facoltativa (solo se il server la richiede). Il server deve essere avviato e il modello scaricato. " +
+                                   "Le email restano nella tua rete; con http:// verso un altro PC viaggiano in chiaro sulla rete interna.";
+                return;
+            }
+            keysSummary.Text = with.Count == 0 ? "Nessuna chiave inserita: senza una chiave Personal AI non puo' elaborare nulla."
+                                               : "Chiavi inserite: " + string.Join(", ", with) + ".";
         }
 
         private void SaveAndClose()
         {
-            foreach (var kv in keyBoxes) settings.SetKey(kv.Key, kv.Value.Text);
+            StoreShown();
+
+            // Controlli prima di toccare le impostazioni.
+            foreach (var p in ModelCatalog.ProviderNames.Keys)
+            {
+                var m = modelDraft[p] ?? "";
+                if (m.Length == 0 || m.Length > 200 || m.Any(char.IsWhiteSpace))
+                {
+                    MessageBox.Show(this, "Modello non valido per " + ModelCatalog.ProviderNames[p] + ": scrivi l'ID senza spazi.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                if (ModelCatalog.IsCompatible(p) && ModelCatalog.NormalizeBaseUrl(urlDraft[p], p) == null)
+                {
+                    MessageBox.Show(this, "Indirizzo API non valido per " + ModelCatalog.ProviderNames[p] +
+                        (p == ModelCatalog.Local ? ": per il modello locale deve puntare a questo PC o alla rete interna (es. http://localhost:11434/v1 o http://192.168.1.20:11434/v1)."
+                                                 : ": deve iniziare con https://.") + " Usa \"Predefinito\" per ripristinarlo.",
+                        Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
+            // Chiavi nuove o cambiate di provider con sede in Cina: conferma esplicita.
+            var china = ModelCatalog.ChinaProviders.Keys
+                .Where(p => (keyDraft[p] ?? "").Trim().Length > 0 && (keyDraft[p] ?? "").Trim() != settings.GetKey(p)).ToList();
+            if (china.Count > 0)
+            {
+                var msg = "Con " + string.Join(", ", china.Select(p => ModelCatalog.ProviderNames[p])) +
+                          " le email che elabori verranno inviate ai server di aziende con sede in Cina e trattate secondo le loro " +
+                          "condizioni e le leggi applicabili, anche cinesi.\n\n" +
+                          string.Join("\n", china.Select(p => "- " + ModelCatalog.ChinaProviders[p])) +
+                          "\n\nNon usarli per dati personali, riservati o aziendali se non sei autorizzato a farlo.\n\nSalvare comunque?";
+                if (MessageBox.Show(this, msg, "Dati inviati a server di aziende cinesi", MessageBoxButtons.YesNo, MessageBoxIcon.Warning,
+                                    MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                {
+                    status.Text = "Impostazioni non salvate.";
+                    return;
+                }
+            }
+
+            foreach (var p in ModelCatalog.ProviderNames.Keys)
+            {
+                settings.SetKey(p, keyDraft[p]);
+                settings.Models[p] = modelDraft[p];
+                if (ModelCatalog.IsCompatible(p))
+                {
+                    var u = ModelCatalog.NormalizeBaseUrl(urlDraft[p], p);
+                    if (u == ModelCatalog.CompatBaseUrls[p]) settings.BaseUrls.Remove(p); else settings.BaseUrls[p] = u;
+                }
+            }
             settings.Provider = SelectedProvider;
-            foreach (var kv in modelChoice) settings.Models[kv.Key] = kv.Value;
-            if (settings.GetKey(settings.Provider).Length == 0)
+            if (settings.Provider != ModelCatalog.Local && settings.GetKey(settings.Provider).Length == 0)
             {
                 var withKey = ModelCatalog.ProviderNames.Keys.FirstOrDefault(p => settings.GetKey(p).Length > 0);
                 if (withKey != null &&

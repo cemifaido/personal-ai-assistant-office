@@ -49,9 +49,9 @@ namespace PersonalAIAssistant
         }
 
         public static async Task<AiResult> CallAsync(string provider, string model, string apiKey,
-            string system, string prompt, string context, CancellationToken ct)
+            string system, string prompt, string context, CancellationToken ct, string baseUrl = null)
         {
-            if (string.IsNullOrWhiteSpace(apiKey))
+            if (string.IsNullOrWhiteSpace(apiKey) && provider != ModelCatalog.Local)
                 throw new AiException("Manca la chiave " + ModelCatalog.ProviderNames[provider] + ": aprila da Personal AI > Impostazioni.");
 
             string user = (string.IsNullOrEmpty(context) ? "" : "CONTESTO:\n\"\"\"\n" + context + "\n\"\"\"\n\n") + "RICHIESTA:\n" + prompt;
@@ -61,6 +61,8 @@ namespace PersonalAIAssistant
             {
                 try
                 {
+                    if (ModelCatalog.IsCompatible(provider))
+                        return await CompatAsync(provider, BaseOrDefault(provider, baseUrl), model, (apiKey ?? "").Trim(), fullSystem, user, ct);
                     switch (provider)
                     {
                         case "openai": return await OpenAiAsync(model, apiKey.Trim(), fullSystem, user, ct);
@@ -156,9 +158,89 @@ namespace PersonalAIAssistant
             return new AiResult { Text = sb.ToString(), Provider = "claude", RequestedModel = model, ActualModel = (Get(data, "model") as string) ?? model };
         }
 
-        /// <summary>Verifica una chiave elencando i modelli disponibili.</summary>
-        public static async Task<List<string>> ListModelsAsync(string provider, string key, CancellationToken ct)
+        // ---------------- provider compatibili OpenAI (Qwen, MiniMax, DeepSeek, OpenRouter) ----------------
+
+        private static string BaseOrDefault(string provider, string baseUrl)
         {
+            var b = ModelCatalog.NormalizeBaseUrl(baseUrl, provider);
+            if (b != null) return b;
+            if (!string.IsNullOrEmpty(baseUrl))
+                throw new AiException("Indirizzo API di " + ModelCatalog.ProviderNames[provider] + " non valido: correggilo nelle Impostazioni.");
+            return ModelCatalog.CompatBaseUrls[provider];
+        }
+
+        private static void AddCompatHeaders(string provider, HttpRequestMessage req, string key)
+        {
+            if (!string.IsNullOrEmpty(key)) req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + key);
+            if (provider == "openrouter")
+            {
+                req.Headers.TryAddWithoutValidation("HTTP-Referer", "https://pai-office-automation.github.io/personal-ai-assistant-office/");
+                req.Headers.TryAddWithoutValidation("X-Title", "Personal AI Assistant");
+            }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex ThinkBlock =
+            new System.Text.RegularExpressions.Regex(@"<think>[\s\S]*?</think>\s*", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        /// <summary>Toglie i blocchi di ragionamento che alcuni modelli mettono nel testo (come aiStripThinking in ai.js).</summary>
+        internal static string StripThinking(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            text = ThinkBlock.Replace(text, "");
+            int end = text.IndexOf("</think>", StringComparison.OrdinalIgnoreCase);
+            if (end >= 0) text = text.Substring(end + "</think>".Length);
+            return text.Trim();
+        }
+
+        private static async Task<AiResult> CompatAsync(string provider, string baseUrl, string model, string key, string system, string user, CancellationToken ct)
+        {
+            var body = new Dictionary<string, object>
+            {
+                { "model", model },
+                { "messages", new[] {
+                    new Dictionary<string, object> { { "role", "system" }, { "content", system } },
+                    new Dictionary<string, object> { { "role", "user" }, { "content", user } } } },
+            };
+            if (provider == "minimax") body["reasoning_split"] = true;   // ragionamento separato dal testo
+            var req = new HttpRequestMessage(HttpMethod.Post, baseUrl + "/chat/completions");
+            AddCompatHeaders(provider, req, key);
+            var data = await SendAsync(provider, req, body, ct);
+
+            var choice = First(Get(data, "choices"));
+            var content = Get(Get(choice, "message"), "content");
+            string raw = content as string;
+            if (raw == null && content is IEnumerable)
+                raw = string.Concat(((IEnumerable)content).OfType<Dictionary<string, object>>().Select(c => Get(c, "text") as string));
+            var text = StripThinking(raw);
+            if (text.Length == 0)
+            {
+                // Alcuni provider rispondono 200 con l'errore nel corpo (es. MiniMax: base_resp.status_msg).
+                var why = (Get(Get(data, "base_resp"), "status_msg") as string) ?? (Get(choice, "finish_reason") as string) ?? "risposta vuota";
+                throw new AiException(ModelCatalog.ProviderNames[provider] + " non ha restituito testo (" + why + ").");
+            }
+            if ((Get(choice, "finish_reason") as string) == "length") text += "\n\n[Risposta troncata: limite di lunghezza raggiunto]";
+            return new AiResult { Text = text, Provider = provider, RequestedModel = model, ActualModel = (Get(data, "model") as string) ?? model };
+        }
+
+        /// <summary>Verifica una chiave elencando i modelli disponibili.</summary>
+        public static async Task<List<string>> ListModelsAsync(string provider, string key, CancellationToken ct, string baseUrl = null)
+        {
+            if (ModelCatalog.IsCompatible(provider))
+            {
+                var b = BaseOrDefault(provider, baseUrl);
+                if (provider == "openrouter")
+                {
+                    // Elenco modelli pubblico: la chiave si verifica a parte.
+                    var check = new HttpRequestMessage(HttpMethod.Get, b + "/key");
+                    AddCompatHeaders(provider, check, key.Trim());
+                    await SendAsync(provider, check, null, ct);
+                }
+                var lr = new HttpRequestMessage(HttpMethod.Get, b + "/models");
+                AddCompatHeaders(provider, lr, (key ?? "").Trim());
+                var ld = await SendAsync(provider, lr, null, ct);
+                return ((Get(ld, "data") as IEnumerable) ?? new object[0]).OfType<Dictionary<string, object>>()
+                    .Select(m => (Get(m, "id") as string) ?? "").Where(s => s.Length > 0).ToList();
+            }
             HttpRequestMessage req;
             switch (provider)
             {

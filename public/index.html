@@ -33,6 +33,17 @@
       <!-- Le opzioni vengono generate da AI_CATALOG in ai.js -->
       <select id="select-model" class="model-select"></select>
     </div>
+    <!-- "Altro modello…": ID scritto dall'utente, con suggerimenti dall'elenco del provider -->
+    <div id="custom-model-row" class="custom-model-row hidden">
+      <label for="input-custom-model" id="custom-model-label">ID del modello</label>
+      <input id="input-custom-model" list="custom-model-list" autocomplete="off" spellcheck="false" />
+      <datalist id="custom-model-list"></datalist>
+      <small id="custom-model-hint" class="custom-model-hint"></small>
+      <div class="button-group">
+        <button id="btn-custom-model-use" class="btn-primary" type="button">Usa questo modello</button>
+        <button id="btn-custom-model-cancel" class="btn-outline" type="button">Annulla</button>
+      </div>
+    </div>
 
     <!-- Messaggi (sostituisce alert(), non affidabile nei pannelli Office) -->
     <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
@@ -90,10 +101,59 @@
           </div>
         </div>
 
+        <!-- Provider con API compatibile OpenAI: comprimibile, aperto da solo se una delle chiavi e' presente -->
+        <details id="more-providers" class="more-providers">
+          <summary>Altri provider: Qwen, MiniMax, DeepSeek, OpenRouter</summary>
+          <small class="more-providers-note">Qwen, MiniMax e DeepSeek sono aziende con sede in Cina; Qwen qui usa il servizio internazionale (Singapore).
+            Prima di inviare documenti di lavoro verifica dove vengono trattati i dati: <a href="#" class="key-link" data-key-link="privacy.html">informativa</a>.</small>
+
+          <div class="key-field">
+            <div class="key-label-row">
+              <label for="input-qwen-key">Qwen (Alibaba):</label>
+              <span class="key-right"><a href="#" class="key-link" data-key-link="https://www.alibabacloud.com/help/en/model-studio/get-api-key">Ottieni chiave</a> <span id="badge-qwen-status" class="key-badge">...</span></span>
+            </div>
+            <div class="input-with-button"><input type="password" id="input-qwen-key" placeholder="sk-..." /></div>
+          </div>
+
+          <div class="key-field">
+            <div class="key-label-row">
+              <label for="input-minimax-key">MiniMax:</label>
+              <span class="key-right"><a href="#" class="key-link" data-key-link="https://platform.minimax.io/user-center/basic-information/interface-key">Ottieni chiave</a> <span id="badge-minimax-status" class="key-badge">...</span></span>
+            </div>
+            <div class="input-with-button"><input type="password" id="input-minimax-key" placeholder="sk-api-..." /></div>
+          </div>
+
+          <div class="key-field">
+            <div class="key-label-row">
+              <label for="input-deepseek-key">DeepSeek:</label>
+              <span class="key-right"><a href="#" class="key-link" data-key-link="https://platform.deepseek.com/api_keys">Ottieni chiave</a> <span id="badge-deepseek-status" class="key-badge">...</span></span>
+            </div>
+            <div class="input-with-button"><input type="password" id="input-deepseek-key" placeholder="sk-..." /></div>
+          </div>
+
+          <div class="key-field">
+            <div class="key-label-row">
+              <label for="input-openrouter-key">OpenRouter:</label>
+              <span class="key-right"><a href="#" class="key-link" data-key-link="https://openrouter.ai/settings/keys">Ottieni chiave</a> <span id="badge-openrouter-status" class="key-badge">...</span></span>
+            </div>
+            <div class="input-with-button"><input type="password" id="input-openrouter-key" placeholder="sk-or-v1-..." /></div>
+          </div>
+        </details>
+
         <label class="persist-option" for="chk-persist-keys">
           <input type="checkbox" id="chk-persist-keys" checked>
           <span>Ricorda le chiavi su questo PC. Togli la spunta per usarle solo finché il pannello è aperto (andranno reinserite).</span>
         </label>
+
+        <!-- Conferma prima di salvare chiavi di provider con sede in Cina -->
+        <div id="china-confirm" class="china-confirm hidden" role="alertdialog" aria-labelledby="china-confirm-title" aria-describedby="china-confirm-text">
+          <strong id="china-confirm-title">Dati inviati a server di aziende cinesi</strong>
+          <p id="china-confirm-text"></p>
+          <div class="button-group">
+            <button id="btn-china-ok" class="btn-primary" type="button">Ho capito, salva</button>
+            <button id="btn-china-cancel" class="btn-outline" type="button">Annulla</button>
+          </div>
+        </div>
 
         <div class="button-group" style="margin-top: 8px;">
           <button id="btn-save-all-keys" class="btn-primary">Salva chiavi</button>

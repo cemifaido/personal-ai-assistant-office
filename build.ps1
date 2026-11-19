@@ -1,7 +1,7 @@
 <#
   Personal AI Assistant - build della release Windows.
 
-    powershell -ExecutionPolicy Bypass -File .\build.ps1 [-Versione 0.1.0] [-BaseUrl https://...]
+    powershell -ExecutionPolicy Bypass -File .\build.ps1 [-Versione 0.2.0] [-BaseUrl https://...]
 
   Passi: compila l'add-in Outlook (MSBuild + VSTO, manifest firmati con il certificato
   "CN=Personal AI Assistant" dell'utente corrente), genera il manifest Word/Excel dal modello,
@@ -9,7 +9,7 @@
   e scrive l'impronta SHA-256 in release\SHA256SUMS.txt.
 #>
 param(
-  [string]$Versione = '0.1.0',
+  [string]$Versione = '0.2.0',
   # Unico punto con gli indirizzi del progetto (sito GitHub Pages e repository).
   [string]$BaseUrl = 'https://pai-office-automation.github.io/personal-ai-assistant-office',
   [string]$RepoUrl = 'https://github.com/pai-office-automation/personal-ai-assistant-office'
@@ -66,8 +66,11 @@ Step "Manifest Word/Excel per $BaseUrl"
 $manifest = (Get-Content (Join-Path $root 'manifest-word-excel.template.xml') -Raw).Replace('__BASE_URL__', $BaseUrl.TrimEnd('/'))
 if ($manifest -match '__BASE_URL__') { throw 'Segnaposto non sostituito nel manifest.' }
 [xml]$check = $manifest
+# La versione del manifest NON segue quella del programma: cambia solo quando cambia il manifest.
+# Un manifest diverso richiede di nuovo la conferma da amministratore a chi aggiorna (cartella condivisa).
 $manVer = $check.OfficeApp.Version
-if (-not $manVer.StartsWith($Versione)) { throw "Versione manifest ($manVer) diversa da $Versione." }
+if ($manVer -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw "Versione manifest non valida: $manVer" }
+Write-Host "   versione manifest $manVer (programma $Versione)"
 [IO.File]::WriteAllText("$build\manifest.xml", $manifest, (New-Object Text.UTF8Encoding $false))
 
 Step "Comandi elevati per la condivisione (script e manifest incorporati, nessun file da leggere)"

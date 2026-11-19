@@ -250,7 +250,7 @@
   <PropertyGroup>
     <SignManifests>true</SignManifests>
     <ManifestCertificateThumbprint>2ADD0FFCCE6AF74A7BFEF4891A61576D4FF57564</ManifestCertificateThumbprint>
-    <ApplicationVersion>0.1.0.0</ApplicationVersion>
+    <ApplicationVersion>0.2.0.0</ApplicationVersion>
     <InstallUrl />
     <UpdateEnabled>false</UpdateEnabled>
   </PropertyGroup>

@@ -15,10 +15,43 @@ const AI_CATALOG = [
   { provider: 'openai', id: 'o3-mini',               label: 'o3-mini (Ragionamento)' },
   { provider: 'claude', id: 'claude-sonnet-5-5',     label: 'Claude Sonnet 5.5 (Scrittura)' },
   { provider: 'claude', id: 'claude-haiku-5-5',      label: 'Claude Haiku 5.5 (Rapido)' },
-  { provider: 'claude', id: 'claude-opus-5-5',       label: 'Claude Opus 5.5 (Massima qualità)' }
+  { provider: 'claude', id: 'claude-opus-5-5',       label: 'Claude Opus 5.5 (Massima qualità)' },
+  { provider: 'qwen',       id: 'qwen-plus',         label: 'Qwen Plus' },
+  { provider: 'qwen',       id: 'qwen3-max',         label: 'Qwen3 Max' },
+  { provider: 'qwen',       id: 'qwen-turbo',        label: 'Qwen Turbo (Rapido)' },
+  { provider: 'minimax',    id: 'MiniMax-M3',        label: 'MiniMax M3' },
+  { provider: 'minimax',    id: 'MiniMax-M2.7',      label: 'MiniMax M2.7' },
+  { provider: 'deepseek',   id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
+  { provider: 'deepseek',   id: 'deepseek-v4-pro',   label: 'DeepSeek V4 Pro' },
+  { provider: 'openrouter', id: 'openrouter/auto',   label: 'OpenRouter: scelta automatica' }
 ];
 
-const AI_PROVIDER_NAMES = { gemini: 'Google Gemini', openai: 'OpenAI', claude: 'Anthropic Claude' };
+const AI_PROVIDER_NAMES = {
+  gemini: 'Google Gemini', openai: 'OpenAI', claude: 'Anthropic Claude',
+  qwen: 'Qwen (Alibaba)', minimax: 'MiniMax', deepseek: 'DeepSeek', openrouter: 'OpenRouter'
+};
+
+/**
+ * Provider con API compatibile OpenAI: cambiano solo indirizzo e modelli. Gli indirizzi sono fissati qui
+ * (il pannello viene caricato dal sito: se un provider li cambia, si corregge questo file per tutti).
+ * - qwen: endpoint internazionale (Singapore); le chiavi delle altre regioni non valgono qui.
+ * - openrouter: l'elenco modelli e' pubblico, la chiave si verifica su /key.
+ */
+/** Provider con sede in Cina: prima di salvarne la chiave si chiede conferma (dove finiscono i dati). */
+const AI_CHINA_PROVIDERS = {
+  qwen: 'Qwen (Alibaba Cloud): qui si usa il servizio internazionale, con server a Singapore',
+  minimax: 'MiniMax: azienda con sede a Shanghai',
+  deepseek: 'DeepSeek: azienda con sede a Hangzhou, server in Cina'
+};
+
+const AI_COMPAT = {
+  qwen:       { base: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1' },
+  minimax:    { base: 'https://api.minimax.io/v1', extraBody: { reasoning_split: true } },
+  deepseek:   { base: 'https://api.deepseek.com' },
+  openrouter: { base: 'https://openrouter.ai/api/v1', keyCheck: '/key',
+                headers: { 'HTTP-Referer': 'https://pai-office-automation.github.io/personal-ai-assistant-office/',
+                           'X-Title': 'Personal AI Assistant' } }
+};
 
 const AI_TIMEOUT_MS = 120000;
 const AI_MAX_RETRIES = 2;
@@ -35,7 +68,7 @@ class AIError extends Error {
   }
 }
 
-const PAA_VERSION = '0.1.0';
+const PAA_VERSION = '0.2.0';
 
 // Chiavi salvate con un prefisso dell'app (prima: "<provider>_api_key", nomi generici).
 const AI_KEY_PREFIX = 'paa.key.';
@@ -43,8 +76,9 @@ const AI_KEY_PREFIX = 'paa.key.';
 // Chiavi "solo per questa sessione": restano in memoria finche' il pannello e' aperto, mai su disco.
 const aiSessionKeys = {};
 const aiLegacyStuck = new Set();
+const aiCurrentStuck = new Set();
 const AI_PERSIST_PREF = 'paa.persist';
-const AI_PROVIDERS = ['gemini', 'openai', 'claude'];
+const AI_PROVIDERS = Object.keys(AI_PROVIDER_NAMES);
 
 // La scelta corrente vive in memoria: e' QUESTA a decidere dove scrivere, non una rilettura dello storage
 // (se la scrittura della preferenza fallisse, una rilettura farebbe salvare la chiave su disco).
@@ -65,7 +99,7 @@ function aiGetKey(provider) {
 /** Dove si trova la chiave: 'salvata' (su questo PC), 'sessione' (solo in memoria) o '' (nessuna). */
 function aiKeyStorage(provider) {
   // Una copia della versione di prova rimasta su disco rende la chiave "salvata", anche se in uso e' quella in memoria.
-  if (aiLegacyStuck.has(provider)) return 'salvata';
+  if (aiLegacyStuck.has(provider) || aiCurrentStuck.has(provider) || aiStoredKey(provider)) return 'salvata';
   if (aiSessionKeys[provider]) return 'sessione';
   return aiStoredKey(provider) ? 'salvata' : '';
 }
@@ -79,19 +113,28 @@ function aiRemoveStored(name) {
 
 /**
  * Imposta (o cancella con value vuoto) la chiave secondo la scelta corrente.
- * Restituisce false se una copia su disco non e' stata rimossa: il chiamante lo deve segnalare.
+ * Restituisce false se la persistenza richiesta o la rimozione di una copia falliscono.
  */
 function aiSetKey(provider, value) {
   delete aiSessionKeys[provider];
   // Si rimuovono sia il nome attuale sia quello delle versioni di prova: nessuna copia puo' tornare alla riapertura.
   const removedCurrent = aiRemoveStored(AI_KEY_PREFIX + provider);
   const removedLegacy = aiRemoveStored(`${provider}_api_key`);
+  if (removedCurrent) aiCurrentStuck.delete(provider); else aiCurrentStuck.add(provider);
   if (removedLegacy) aiLegacyStuck.delete(provider); else aiLegacyStuck.add(provider);
   const removed = removedCurrent && removedLegacy;
   if (!value) return removed;
   if (aiPersistChoice) {
-    try { localStorage.setItem(AI_KEY_PREFIX + provider, value); return true; }
+    try {
+      localStorage.setItem(AI_KEY_PREFIX + provider, value);
+      if (localStorage.getItem(AI_KEY_PREFIX + provider) === value) {
+        aiCurrentStuck.delete(provider);
+        return removedLegacy;
+      }
+    }
     catch (e) { /* storage non scrivibile: resta in memoria */ }
+    aiSessionKeys[provider] = value;
+    return false;
   }
   aiSessionKeys[provider] = value;
   return removed;
@@ -240,7 +283,44 @@ async function aiCallClaude({ apiKey, model, system, user, signal }) {
   return { text, model: data.model || model };
 }
 
-const AI_ADAPTERS = { gemini: aiCallGemini, openai: aiCallOpenAI, claude: aiCallClaude };
+/** Toglie i blocchi di ragionamento che alcuni modelli (MiniMax, Qwen, DeepSeek) mettono nel testo. */
+function aiStripThinking(text) {
+  return (text || '').replace(/<think>[\s\S]*?<\/think>\s*/gi, '').replace(/^[\s\S]*?<\/think>\s*/i, '').trim();
+}
+
+function aiCompatHeaders(provider, apiKey) {
+  return { 'authorization': `Bearer ${apiKey}`, ...(AI_COMPAT[provider].headers || {}) };
+}
+
+async function aiCallCompatible(provider, { apiKey, model, system, user, signal }) {
+  const cfg = AI_COMPAT[provider];
+  const data = await aiFetchJson(provider, `${cfg.base}/chat/completions`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...aiCompatHeaders(provider, apiKey) },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      ...(cfg.extraBody || {})
+    })
+  }, signal);
+  const choice = data?.choices?.[0];
+  const content = choice?.message?.content;
+  const text = aiStripThinking(Array.isArray(content) ? content.map(c => c?.text || '').join('') : content);
+  // Alcuni provider rispondono 200 con un errore nel corpo (es. MiniMax: base_resp.status_code).
+  if (!text) {
+    const why = data?.base_resp?.status_msg || data?.error?.message || choice?.finish_reason || 'risposta vuota';
+    throw new AIError(`${AI_PROVIDER_NAMES[provider]} non ha restituito testo (${why}).`);
+  }
+  if (choice?.finish_reason === 'length') {
+    return { text: text + '\n\n[Risposta troncata: limite di lunghezza raggiunto]', model: data.model || model };
+  }
+  return { text, model: data.model || model };
+}
+
+const AI_ADAPTERS = {
+  gemini: aiCallGemini, openai: aiCallOpenAI, claude: aiCallClaude,
+  ...Object.fromEntries(Object.keys(AI_COMPAT).map(p => [p, args => aiCallCompatible(p, args)]))
+};
 
 /**
  * Chiamata unica usata dal pannello.
@@ -301,6 +381,16 @@ async function aiListModels(provider, apiKey) {
         headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
       }, ctrl.signal);
       return (d.data || []).map(m => m.id);
+    }
+    const cfg = AI_COMPAT[provider];
+    if (cfg) {
+      const headers = aiCompatHeaders(provider, apiKey);
+      if (cfg.keyCheck) {
+        // Elenco modelli pubblico (OpenRouter): la chiave si verifica a parte, poi si legge l'elenco.
+        await aiFetchJson(provider, cfg.base + cfg.keyCheck, { headers }, ctrl.signal);
+      }
+      const d = await aiFetchJson(provider, `${cfg.base}/models`, { headers }, ctrl.signal);
+      return (d.data || []).map(m => m.id).filter(Boolean);
     }
     return [];
   } finally {

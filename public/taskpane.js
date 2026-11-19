@@ -96,22 +96,99 @@ const MODEL_STORE_KEY = 'paa.model';
 
 /* ===================== Modelli ===================== */
 
+// Modelli scritti dall'utente con "Altro modello…" (es. un modello nuovo non ancora nel catalogo).
+const CUSTOM_MODELS_KEY = 'paa.models.custom';
+const OTHER_MODEL = '__altro__';
+const providerModelCache = {};   // elenco modelli letto dal provider (suggerimenti)
+let lastModelValue = '';
+
+function getCustomModels() {
+  try {
+    const list = JSON.parse(storeGet(CUSTOM_MODELS_KEY) || '[]');
+    return Array.isArray(list) ? list.filter(m => m && AI_PROVIDER_NAMES[m.provider] && typeof m.id === 'string' && m.id) : [];
+  } catch (e) { return []; }
+}
+
+function addCustomModel(provider, id) {
+  const list = getCustomModels().filter(m => !(m.provider === provider && m.id === id));
+  list.push({ provider, id });
+  storeSet(CUSTOM_MODELS_KEY, JSON.stringify(list.slice(-20)));
+}
+
 function buildModelSelect() {
   const select = document.getElementById('select-model');
   select.innerHTML = '';
+  const custom = getCustomModels();
   for (const provider of Object.keys(AI_PROVIDER_NAMES)) {
     const group = document.createElement('optgroup');
     group.label = AI_PROVIDER_NAMES[provider];
-    AI_CATALOG.filter(m => m.provider === provider).forEach(m => {
+    const add = (value, text) => {
       const opt = document.createElement('option');
-      opt.value = `${m.provider}:${m.id}`;
-      opt.textContent = m.label;
+      opt.value = value;
+      opt.textContent = text;
       group.appendChild(opt);
-    });
+    };
+    const catalog = AI_CATALOG.filter(m => m.provider === provider);
+    catalog.forEach(m => add(`${m.provider}:${m.id}`, m.label));
+    custom.filter(m => m.provider === provider && !catalog.some(c => c.id === m.id))
+          .forEach(m => add(`${provider}:${m.id}`, `${m.id} (scelto da te)`));
+    add(`${provider}:${OTHER_MODEL}`, 'Altro modello…');
     select.appendChild(group);
   }
   const saved = storeGet(MODEL_STORE_KEY);
   if (saved && [...select.options].some(o => o.value === saved)) select.value = saved;
+  lastModelValue = select.value;
+}
+
+/** Mostra la riga per scrivere l'ID di un modello del provider; i suggerimenti arrivano dal provider se c'e' la chiave. */
+async function openCustomModel(provider) {
+  const row = document.getElementById('custom-model-row');
+  const input = document.getElementById('input-custom-model');
+  const list = document.getElementById('custom-model-list');
+  const hint = document.getElementById('custom-model-hint');
+  row.dataset.provider = provider;
+  document.getElementById('custom-model-label').textContent = `ID del modello ${AI_PROVIDER_NAMES[provider]}`;
+  input.value = '';
+  list.innerHTML = '';
+  row.classList.remove('hidden');
+  input.focus();
+  const key = aiGetKey(provider).trim();
+  if (!key) { hint.textContent = 'Scrivi l\'ID esatto indicato dal provider. Inserisci la chiave per avere i suggerimenti.'; return; }
+  hint.textContent = 'Carico l\'elenco dei modelli dal provider…';
+  try {
+    if (!providerModelCache[provider]) providerModelCache[provider] = await aiListModels(provider, key);
+    if (row.dataset.provider !== provider) return;
+    providerModelCache[provider].slice(0, 500).forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      list.appendChild(opt);
+    });
+    hint.textContent = `${providerModelCache[provider].length} modelli disponibili: inizia a scrivere per filtrarli.`;
+  } catch (err) {
+    hint.textContent = `Elenco non disponibile (${err.message.split('\n')[0]}). Puoi comunque scrivere l'ID.`;
+  }
+}
+
+function closeCustomModel() {
+  document.getElementById('custom-model-row').classList.add('hidden');
+}
+
+function useCustomModel() {
+  const row = document.getElementById('custom-model-row');
+  const provider = row.dataset.provider;
+  const id = document.getElementById('input-custom-model').value.trim();
+  if (!id || /\s/.test(id) || id.length > 200) { notify('Scrivi un ID di modello valido, senza spazi (es. qwen-max).', 'warn'); return; }
+  const known = providerModelCache[provider];
+  addCustomModel(provider, id);
+  buildModelSelect();
+  const select = document.getElementById('select-model');
+  select.value = `${provider}:${id}`;
+  storeSet(MODEL_STORE_KEY, select.value);
+  lastModelValue = select.value;
+  closeCustomModel();
+  notify(`Modello impostato: ${id} (${AI_PROVIDER_NAMES[provider]}).` +
+    (known && !known.includes(id) ? ' Attenzione: non compare nell\'elenco del provider, potrebbe non esistere.' : ''),
+    known && !known.includes(id) ? 'warn' : 'success');
 }
 
 /** Se il modello scelto è di un provider senza chiave, passa al primo provider che ne ha una. */
@@ -128,20 +205,27 @@ function selectModelWithKey() {
 
 function getSelectedModelInfo() {
   const select = document.getElementById('select-model');
-  const [provider, model] = select.value.split(':');
+  // Solo il primo ":" separa il provider: gli ID possono contenerne altri (es. OpenRouter "modello:free").
+  const i = select.value.indexOf(':');
+  const provider = select.value.slice(0, i), model = select.value.slice(i + 1);
   return { provider, model, label: select.options[select.selectedIndex].text };
 }
 
 /* ===================== Chiavi ===================== */
 
-const KEY_INPUTS = { gemini: 'input-gemini-key', openai: 'input-openai-key', claude: 'input-claude-key' };
+const KEY_INPUTS = Object.fromEntries(AI_PROVIDERS.map(p => [p, `input-${p}-key`]));
+const COMPAT_PROVIDERS = Object.keys(AI_COMPAT);
 
 /**
  * I campi restano sempre vuoti: la chiave salvata non viene ricopiata nella pagina.
  * Il segnaposto indica solo che esiste, con le ultime 4 cifre per riconoscerla.
  */
 function loadSavedKeys() {
-  const PLACEHOLDERS = { gemini: 'AIzaSy...', openai: 'sk-proj-...', claude: 'sk-ant-...' };
+  const PLACEHOLDERS = { gemini: 'AIzaSy...', openai: 'sk-proj-...', claude: 'sk-ant-...',
+                         qwen: 'sk-...', minimax: 'sk-api-...', deepseek: 'sk-...', openrouter: 'sk-or-v1-...' };
+  // La sezione "Altri provider" si apre da sola se una di quelle chiavi e' presente.
+  const more = document.getElementById('more-providers');
+  if (more && COMPAT_PROVIDERS.some(p => aiGetKey(p))) more.open = true;
   for (const [p, id] of Object.entries(KEY_INPUTS)) {
     const input = document.getElementById(id);
     const key = aiGetKey(p);
@@ -171,6 +255,7 @@ async function verifyKeys() {
     el.textContent = 'Verifica…';
     try {
       const available = await aiListModels(p, key);
+      providerModelCache[p] = available;
       const missing = AI_CATALOG.filter(m => m.provider === p && !available.includes(m.id)).map(m => m.id);
       el.textContent = 'Valida';
       el.className = 'key-badge ready';
@@ -216,8 +301,22 @@ function setLoader(visible, text = 'Elaborazione in corso...') {
 
 function initEventListeners() {
   document.getElementById('select-model').addEventListener('change', (e) => {
+    const { provider, model } = getSelectedModelInfo();
+    if (model === OTHER_MODEL) {
+      e.target.value = lastModelValue;   // finche' non si conferma resta il modello di prima
+      openCustomModel(provider);
+      return;
+    }
+    closeCustomModel();
+    lastModelValue = e.target.value;
     storeSet(MODEL_STORE_KEY, e.target.value);
     notify(`Modello impostato: ${getSelectedModelInfo().label}`);
+  });
+  document.getElementById('btn-custom-model-use').addEventListener('click', useCustomModel);
+  document.getElementById('btn-custom-model-cancel').addEventListener('click', closeCustomModel);
+  document.getElementById('input-custom-model').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); useCustomModel(); }
+    if (e.key === 'Escape') closeCustomModel();
   });
 
   document.querySelectorAll('[data-key-link]').forEach((a) => {
@@ -240,8 +339,31 @@ function initEventListeners() {
     setSettingsOpen(document.getElementById('settings-card').classList.contains('hidden'));
   });
 
+  // Chiavi nuove di provider con sede in Cina: prima si chiede conferma esplicita.
   document.getElementById('btn-save-all-keys').addEventListener('click', () => {
+    const china = Object.keys(AI_CHINA_PROVIDERS).filter(p => document.getElementById(KEY_INPUTS[p]).value.trim());
+    if (!china.length) { saveAllKeys(); return; }
+    document.getElementById('china-confirm-text').textContent =
+      `Con ${china.map(p => AI_PROVIDER_NAMES[p]).join(', ')} i testi, i documenti e le email che elabori verranno inviati ` +
+      'ai server di aziende con sede in Cina e trattati secondo le loro condizioni e le leggi applicabili, anche cinesi. ' +
+      china.map(p => AI_CHINA_PROVIDERS[p]).join('. ') + '. ' +
+      'Non usarli per dati personali, riservati o aziendali se non sei autorizzato a farlo.';
+    document.getElementById('china-confirm').classList.remove('hidden');
+    document.getElementById('btn-china-ok').focus();
+  });
+  document.getElementById('btn-china-ok').addEventListener('click', () => {
+    document.getElementById('china-confirm').classList.add('hidden');
+    saveAllKeys();
+  });
+  document.getElementById('btn-china-cancel').addEventListener('click', () => {
+    document.getElementById('china-confirm').classList.add('hidden');
+    notify('Chiavi non salvate. Puoi togliere le chiavi dei provider con sede in Cina e salvare le altre.', 'info');
+    document.getElementById('btn-save-all-keys').focus();
+  });
+
+  function saveAllKeys() {
     // Si aggiornano solo i campi compilati: un campo vuoto mantiene la chiave gia' presente.
+    for (const p of Object.keys(providerModelCache)) delete providerModelCache[p];   // elenchi legati alla chiave di prima
     let ok = aiSetPersist(document.getElementById('chk-persist-keys').checked);
     for (const [p, id] of Object.entries(KEY_INPUTS)) {
       const value = document.getElementById(id).value.trim();
@@ -251,7 +373,7 @@ function initEventListeners() {
     updateKeyBadges();
     const hasKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
     if (!ok) {
-      notify('Attenzione: una copia precedente della chiave non è stata rimossa dal disco. Riprova o usa "Cancella".', 'error');
+      notify('Non è stato possibile completare il salvataggio delle preferenze o delle chiavi, oppure rimuovere una copia dal disco. Controlla lo stato delle chiavi e riprova; per rimuoverle usa "Cancella".', 'error');
     } else {
       notify(!hasKey ? 'Nessuna chiave salvata: senza una chiave il pannello non può elaborare nulla.'
         : aiPersistKeys() ? "Chiavi salvate su questo PC. Per modificarle usa l'ingranaggio in alto."
@@ -259,7 +381,7 @@ function initEventListeners() {
     }
     if (hasKey && ok) setSettingsOpen(false);
     selectModelWithKey();
-  });
+  }
   document.getElementById('btn-verify-keys').addEventListener('click', verifyKeys);
   document.getElementById('btn-close-settings').addEventListener('click', () => {
     setSettingsOpen(false);

@@ -1,0 +1,47 @@
+# Controllo settimanale dei provider: indirizzi raggiungibili, chiamate dal pannello accettate (CORS) e,
+# se nei segreti del repository ci sono chiavi (KEY_GEMINI, KEY_OPENAI, KEY_CLAUDE, KEY_QWEN, KEY_MINIMAX,
+# KEY_DEEPSEEK, KEY_OPENROUTER; tutte facoltative), modelli del catalogo ancora esistenti.
+# Se qualcosa non va apre (o aggiorna) una segnalazione nel repository: GitHub la notifica per email.
+name: Controllo provider
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # ogni lunedi', 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  controllo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Controlla i provider
+        id: controllo
+        continue-on-error: true
+        env:
+          KEY_GEMINI: ${{ secrets.KEY_GEMINI }}
+          KEY_OPENAI: ${{ secrets.KEY_OPENAI }}
+          KEY_CLAUDE: ${{ secrets.KEY_CLAUDE }}
+          KEY_QWEN: ${{ secrets.KEY_QWEN }}
+          KEY_MINIMAX: ${{ secrets.KEY_MINIMAX }}
+          KEY_DEEPSEEK: ${{ secrets.KEY_DEEPSEEK }}
+          KEY_OPENROUTER: ${{ secrets.KEY_OPENROUTER }}
+        run: node scripts/controllo-provider.cjs > report.md
+      - name: Riepilogo
+        run: cat report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Apri o aggiorna la segnalazione
+        if: steps.controllo.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Controllo provider: qualcosa e' cambiato"
+          num=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -n "$num" ]; then gh issue comment "$num" --body-file report.md
+          else gh issue create --title "$title" --body-file report.md; fi
+          exit 1

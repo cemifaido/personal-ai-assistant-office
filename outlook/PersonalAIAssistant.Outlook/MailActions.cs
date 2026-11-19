@@ -190,7 +190,8 @@ namespace PersonalAIAssistant
                 progress.Show();
                 try
                 {
-                    return await AiClient.CallAsync(provider, model, settings.GetKey(provider), SystemPrompt, prompt, context, cts.Token);
+                    return await AiClient.CallAsync(provider, model, settings.GetKey(provider), SystemPrompt, prompt, context, cts.Token,
+                                                     ModelCatalog.IsCompatible(provider) ? settings.BaseUrlFor(provider) : null);
                 }
                 catch (OperationCanceledException) { return null; }
                 catch (AiException ex)
