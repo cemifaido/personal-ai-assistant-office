@@ -6,7 +6,9 @@
 
   -Azione Crea    -ManifestSource <file>   crea o aggiorna cartella, manifest e condivisione
                   (oppure -ManifestGzB64 <manifest gzip+base64>, come fa l'installatore)
-  -Azione Rimuovi                          rimuove condivisione e cartella (solo se sono nostre)
+  -Azione Rimuovi                          rimuove condivisione e SOLO i propri file; le cartelle solo se vuote
+  -Azione Verifica -ManifestGzB64 <...>    SENZA privilegi: 0 se condivisione, cartella, permessi e manifest
+                                           sono conformi; 1 se non conformi o non verificabili
 
   Regole di sicurezza (lo script gira elevato):
   - non segue collegamenti (junction/symlink) e rifiuta cartelle create da utenti non amministratori;
@@ -14,10 +16,11 @@
   - una condivisione con lo stesso nome viene toccata solo se punta alla nostra cartella e porta la nostra descrizione.
 
   Codici di uscita: 0 ok, 2 servizio "Server" non attivo, 3 errore (vedi log),
-                    4 cartella esistente non sicura, 5 condivisione con lo stesso nome non nostra.
+                    4 cartella esistente non sicura, 5 condivisione con lo stesso nome non nostra,
+                    6 rimozione completata ma restano file non creati da Personal AI Assistant.
 #>
 param(
-  [ValidateSet('Crea', 'Rimuovi')][string]$Azione = 'Crea',
+  [ValidateSet('Crea', 'Rimuovi', 'Verifica')][string]$Azione = 'Crea',
   [string]$ManifestSource,
   [string]$ManifestGzB64   # manifest compresso e incorporato (usato dall'installatore: nessun file da leggere)
 )
@@ -49,6 +52,26 @@ function Test-SafeFolder($path) {
   return $trustedOwners -contains $owner
 }
 
+# Nessun permesso di scrittura per chi non e' amministratore/SYSTEM/TrustedInstaller/CREATOR OWNER.
+function Test-NoForeignWrite($path) {
+  $write = [System.Security.AccessControl.FileSystemRights]'WriteData, AppendData, WriteExtendedAttributes, WriteAttributes, Delete, DeleteSubdirectoriesAndFiles, ChangePermissions, TakeOwnership'
+  $allowed = $trustedOwners + @('S-1-3-0')
+  foreach ($ace in (Get-Acl -LiteralPath $path).GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])) {
+    if ($ace.AccessControlType -ne 'Allow') { continue }
+    if (($ace.FileSystemRights -band $write) -and ($allowed -notcontains $ace.IdentityReference.Value)) { return $false }
+  }
+  return $true
+}
+
+function Get-ManifestBytes {
+  if ($ManifestGzB64) {
+    $gz = New-Object IO.Compression.GZipStream((New-Object IO.MemoryStream(,[Convert]::FromBase64String($ManifestGzB64))), [IO.Compression.CompressionMode]::Decompress)
+    $ms = New-Object IO.MemoryStream; $gz.CopyTo($ms); return ,$ms.ToArray()
+  }
+  if ($ManifestSource -and (Test-Path -LiteralPath $ManifestSource -PathType Leaf)) { return ,[IO.File]::ReadAllBytes($ManifestSource) }
+  return $null
+}
+
 function Set-SecureAcl($path) {
   $acl = New-Object System.Security.AccessControl.DirectorySecurity
   $acl.SetOwner($sidAdmins)
@@ -77,6 +100,23 @@ function Get-OurShare {
   return $s
 }
 
+if ($Azione -eq 'Verifica') {
+  try {
+    $expected = Get-ManifestBytes
+    if (-not $expected) { exit 1 }
+    $share = Get-CimInstance -ClassName Win32_Share -Filter "Name='PersonalAIAssistant`$'" -ErrorAction Stop
+    if (-not $share -or $share.Path -ne $dir) { exit 1 }
+    foreach ($p in $root, $dir) { if (-not (Test-Path -LiteralPath $p) -or -not (Test-SafeFolder $p) -or -not (Test-NoForeignWrite $p)) { exit 1 } }
+    $file = Join-Path $dir 'manifest.xml'
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { exit 1 }
+    if ((Get-Item -LiteralPath $file -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { exit 1 }
+    if (-not (Test-NoForeignWrite $file)) { exit 1 }
+    $actual = [IO.File]::ReadAllBytes($file)
+    if ([Convert]::ToBase64String($actual) -ne [Convert]::ToBase64String($expected)) { exit 1 }
+    exit 0
+  } catch { exit 1 }
+}
+
 try {
   foreach ($p in $root, $dir) {
     if (-not (Test-SafeFolder $p)) { exit 4 }
@@ -86,17 +126,23 @@ try {
     $s = Get-OurShare
     if ($s -eq 'altra') { exit 5 }
     if ($s) { Remove-SmbShare -Name $shareName -Force }
-    if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
+    # Solo i file creati da Personal AI Assistant; le cartelle si tolgono solo se restano vuote.
+    foreach ($f in (Join-Path $dir 'manifest.xml'), (Join-Path $root 'condivisione.log'), (Join-Path $root 'installazione-condivisione.log')) {
+      if (Test-Path -LiteralPath $f -PathType Leaf) { Remove-Item -LiteralPath $f -Force }
+    }
+    $foreign = $false
+    foreach ($d in $dir, $root) {
+      if (Test-Path -LiteralPath $d) {
+        if (@(Get-ChildItem -LiteralPath $d -Force).Count -eq 0) { Remove-Item -LiteralPath $d -Force } else { $foreign = $true }
+      }
+    }
+    if ($foreign) { exit 6 }
     exit 0
   }
 
   # Il manifest arriva incorporato nel comando (installatore) oppure da file (uso manuale).
-  if ($ManifestGzB64) {
-    $gz = New-Object IO.Compression.GZipStream((New-Object IO.MemoryStream(,[Convert]::FromBase64String($ManifestGzB64))), [IO.Compression.CompressionMode]::Decompress)
-    $ms = New-Object IO.MemoryStream; $gz.CopyTo($ms); $manifestBytes = $ms.ToArray()
-  } elseif ($ManifestSource -and (Test-Path -LiteralPath $ManifestSource -PathType Leaf)) {
-    $manifestBytes = [IO.File]::ReadAllBytes($ManifestSource)
-  } else { exit 3 }
+  $manifestBytes = Get-ManifestBytes
+  if (-not $manifestBytes) { exit 3 }
   try { [void][xml][Text.Encoding]::UTF8.GetString($manifestBytes) } catch { exit 3 }
   $existing = Get-OurShare
   if ($existing -eq 'altra') { exit 5 }

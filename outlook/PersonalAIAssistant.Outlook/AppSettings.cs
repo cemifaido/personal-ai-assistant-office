@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
@@ -82,6 +83,8 @@ namespace PersonalAIAssistant
                 }
             }
             catch { /* file danneggiato: si riparte dalle impostazioni predefinite */ }
+            // A ogni caricamento: se restano valori della vecchia macro gia' importati, si ritenta la pulizia.
+            s.CleanLegacyMacro();
             if (!ModelCatalog.ProviderNames.ContainsKey(s.Provider)) s.Provider = "gemini";
             return s;
         }
@@ -104,14 +107,21 @@ namespace PersonalAIAssistant
 
         /// <summary>
         /// Prima esecuzione: importa provider, modelli e chiavi della vecchia macro VBA
-        /// (salvate in chiaro nel registro) e le cancella dal registro.
+        /// (salvate in chiaro nel registro) e poi ne cancella SOLO i valori migrati.
+        /// "Importate" e "rimosse dal registro" sono stati distinti: se la pulizia non riesce
+        /// lo si dichiara e si ritenta a ogni caricamento.
         /// </summary>
         public bool ImportedFromMacro { get; private set; }
 
+        /// <summary>true se nel registro restano ancora chiavi della vecchia macro in chiaro.</summary>
+        public bool LegacyKeysRemain { get; private set; }
+
+        private const string LegacyPath = @"Software\VB and VBA Program Settings\PersonalAIAssistant\Config";
+        private const string LegacyRoot = @"Software\VB and VBA Program Settings\PersonalAIAssistant";
+
         private void ImportFromLegacyMacro()
         {
-            const string path = @"Software\VB and VBA Program Settings\PersonalAIAssistant\Config";
-            using (var k = Registry.CurrentUser.OpenSubKey(path, true))
+            using (var k = Registry.CurrentUser.OpenSubKey(LegacyPath, false))
             {
                 if (k == null) return;
                 var prov = k.GetValue("provider") as string;
@@ -124,10 +134,43 @@ namespace PersonalAIAssistant
                     if (!string.IsNullOrEmpty(key)) { SetKey(p, key); ImportedFromMacro = true; }
                 }
             }
-            if (ImportedFromMacro)
+            if (ImportedFromMacro) Save();   // prima si salva la copia cifrata, poi si pulisce il registro
+        }
+
+        /// <summary>
+        /// Rimuove dal registro i soli valori della vecchia macro (chiavi, provider, modelli) e verifica il risultato.
+        /// Le chiavi si cancellano solo se la copia cifrata esiste gia', per non perderle.
+        /// </summary>
+        private void CleanLegacyMacro()
+        {
+            try
             {
-                Save();
-                try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\VB and VBA Program Settings\PersonalAIAssistant", false); } catch { }
+                using (var k = Registry.CurrentUser.OpenSubKey(LegacyPath, true))
+                {
+                    if (k == null) { LegacyKeysRemain = false; return; }
+                    foreach (var p in ModelCatalog.ProviderNames.Keys)
+                    {
+                        if (k.GetValue("key_" + p) != null && GetKey(p).Length > 0) k.DeleteValue("key_" + p, false);
+                        k.DeleteValue("model_" + p, false);
+                    }
+                    k.DeleteValue("provider", false);
+                }
+                using (var k = Registry.CurrentUser.OpenSubKey(LegacyPath, false))
+                {
+                    LegacyKeysRemain = k != null && k.GetValueNames().Any(n => n.StartsWith("key_", StringComparison.OrdinalIgnoreCase));
+                    if (k != null && k.ValueCount == 0 && k.SubKeyCount == 0)
+                    {
+                        k.Close();
+                        Registry.CurrentUser.DeleteSubKey(LegacyPath, false);
+                        using (var r = Registry.CurrentUser.OpenSubKey(LegacyRoot, false))
+                            if (r != null && r.ValueCount == 0 && r.SubKeyCount == 0) { r.Close(); Registry.CurrentUser.DeleteSubKey(LegacyRoot, false); }
+                    }
+                }
+            }
+            catch
+            {
+                using (var k = Registry.CurrentUser.OpenSubKey(LegacyPath, false))
+                    LegacyKeysRemain = k != null && k.GetValueNames().Any(n => n.StartsWith("key_", StringComparison.OrdinalIgnoreCase));
             }
         }
     }

@@ -46,7 +46,13 @@ namespace PersonalAIAssistant
         public void OnSettings(Office.IRibbonControl c)
         {
             var s = AppSettings.Load();
-            string intro = s.ImportedFromMacro ? "Ho importato provider e chiavi dalla vecchia macro e le ho cancellate dal registro (ora sono cifrate)." : null;
+            string intro = null;
+            if (s.LegacyKeysRemain)
+                intro = "Attenzione: nel registro restano chiavi della vecchia macro salvate in chiaro e non sono riuscito a cancellarle. " +
+                        "Riprovero' al prossimo avvio; se il messaggio resta, cancella la chiave di registro " +
+                        @"HKCU\Software\VB and VBA Program Settings\PersonalAIAssistant.";
+            else if (s.ImportedFromMacro)
+                intro = "Ho importato provider e chiavi dalla vecchia macro (ora sono cifrate) e le ho rimosse dal registro.";
             using (var f = new SettingsForm(s, intro)) f.ShowDialog();
         }
     }

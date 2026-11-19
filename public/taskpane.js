@@ -218,10 +218,16 @@ function initEventListeners() {
     a.addEventListener('click', (e) => { e.preventDefault(); openExternal(a.dataset.keyLink); });
   });
   document.getElementById('btn-clear-keys').addEventListener('click', () => {
-    for (const p of Object.keys(KEY_INPUTS)) aiSetKey(p, '');
+    const failed = Object.keys(KEY_INPUTS).filter(p => !aiSetKey(p, ''));
     loadSavedKeys();
     updateKeyBadges();
-    notify('Chiavi cancellate da questo pannello. Se hai Personal AI anche in Word/Excel e Outlook, cancellale anche lì.', 'success');
+    if (failed.length) {
+      notify(`Non sono riuscito a cancellare dal disco la chiave di: ${failed.map(p => AI_PROVIDER_NAMES[p]).join(', ')}. ` +
+             'Riprova; se il problema resta, revoca la chiave dal sito del provider.', 'error');
+    } else {
+      notify('Chiavi cancellate da questo pannello. Personal AI in Outlook ha impostazioni separate: cancellale anche lì. ' +
+             'Cancellare una chiave non la disattiva: se temi che sia stata copiata, revocala dal sito del provider.', 'success');
+    }
   });
 
   document.getElementById('btn-toggle-settings').addEventListener('click', () => {
@@ -230,17 +236,22 @@ function initEventListeners() {
 
   document.getElementById('btn-save-all-keys').addEventListener('click', () => {
     // Si aggiornano solo i campi compilati: un campo vuoto mantiene la chiave gia' presente.
-    aiSetPersist(document.getElementById('chk-persist-keys').checked);
+    let ok = aiSetPersist(document.getElementById('chk-persist-keys').checked);
     for (const [p, id] of Object.entries(KEY_INPUTS)) {
       const value = document.getElementById(id).value.trim();
-      if (value) aiSetKey(p, value);
+      if (value && !aiSetKey(p, value)) ok = false;
     }
     loadSavedKeys();
     updateKeyBadges();
     const hasKey = Object.keys(KEY_INPUTS).some(p => aiGetKey(p));
-    notify(hasKey ? "Chiavi salvate in questo pannello. Per modificarle usa l'ingranaggio in alto."
-                  : 'Nessuna chiave salvata: senza una chiave il pannello non può elaborare nulla.', hasKey ? 'success' : 'warn');
-    if (hasKey) setSettingsOpen(false);
+    if (!ok) {
+      notify('Attenzione: una copia precedente della chiave non è stata rimossa dal disco. Riprova o usa "Cancella".', 'error');
+    } else {
+      notify(!hasKey ? 'Nessuna chiave salvata: senza una chiave il pannello non può elaborare nulla.'
+        : aiPersistKeys() ? "Chiavi salvate su questo PC. Per modificarle usa l'ingranaggio in alto."
+        : 'Chiavi attive solo finché il pannello resta aperto: non sono state scritte su disco.', hasKey ? 'success' : 'warn');
+    }
+    if (hasKey && ok) setSettingsOpen(false);
     selectModelWithKey();
   });
   document.getElementById('btn-verify-keys').addEventListener('click', verifyKeys);

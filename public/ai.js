@@ -43,49 +43,75 @@ const AI_KEY_PREFIX = 'paa.key.';
 // Chiavi "solo per questa sessione": restano in memoria finche' il pannello e' aperto, mai su disco.
 const aiSessionKeys = {};
 const AI_PERSIST_PREF = 'paa.persist';
+const AI_PROVIDERS = ['gemini', 'openai', 'claude'];
 
-/** true se l'utente vuole che le chiavi siano ricordate su questo PC (predefinito). */
-function aiPersistKeys() {
+// La scelta corrente vive in memoria: e' QUESTA a decidere dove scrivere, non una rilettura dello storage
+// (se la scrittura della preferenza fallisse, una rilettura farebbe salvare la chiave su disco).
+let aiPersistChoice = (() => {
   try { return localStorage.getItem(AI_PERSIST_PREF) !== '0'; } catch (e) { return false; }
+})();
+
+function aiPersistKeys() { return aiPersistChoice; }
+
+function aiStoredKey(provider) {
+  try { return localStorage.getItem(AI_KEY_PREFIX + provider) || ''; } catch (e) { return ''; }
 }
 
 function aiGetKey(provider) {
-  if (aiSessionKeys[provider]) return aiSessionKeys[provider];
-  try { return localStorage.getItem(AI_KEY_PREFIX + provider) || ''; } catch (e) { return ''; }
+  return aiSessionKeys[provider] || aiStoredKey(provider);
 }
 
 /** Dove si trova la chiave: 'salvata' (su questo PC), 'sessione' (solo in memoria) o '' (nessuna). */
 function aiKeyStorage(provider) {
   if (aiSessionKeys[provider]) return 'sessione';
-  try { return localStorage.getItem(AI_KEY_PREFIX + provider) ? 'salvata' : ''; } catch (e) { return ''; }
+  return aiStoredKey(provider) ? 'salvata' : '';
 }
 
+/** Rimuove la copia su disco e verifica che sia davvero sparita. */
+function aiRemoveStored(name) {
+  try { localStorage.removeItem(name); } catch (e) { /* verificato sotto */ }
+  try { return localStorage.getItem(name) === null; } catch (e) { return true; } // storage illeggibile: nessuna copia accessibile
+}
+
+/**
+ * Imposta (o cancella con value vuoto) la chiave secondo la scelta corrente.
+ * Restituisce false se una copia su disco non e' stata rimossa: il chiamante lo deve segnalare.
+ */
 function aiSetKey(provider, value) {
   delete aiSessionKeys[provider];
-  try { localStorage.removeItem(AI_KEY_PREFIX + provider); } catch (e) { /* storage non disponibile */ }
-  if (!value) return;
-  if (aiPersistKeys()) {
-    try { localStorage.setItem(AI_KEY_PREFIX + provider, value); return; } catch (e) { /* ripiego in memoria */ }
+  const removed = aiRemoveStored(AI_KEY_PREFIX + provider);
+  if (!value) return removed;
+  if (aiPersistChoice) {
+    try { localStorage.setItem(AI_KEY_PREFIX + provider, value); return true; }
+    catch (e) { /* storage non scrivibile: resta in memoria */ }
   }
   aiSessionKeys[provider] = value;
+  return removed;
 }
 
-/** Cambia la preferenza e sposta di conseguenza le chiavi gia' presenti. */
+/** Cambia la scelta (prima in memoria, poi su disco) e sposta le chiavi presenti. Restituisce false su errori. */
 function aiSetPersist(persist) {
   const current = {};
-  for (const p of ['gemini', 'openai', 'claude']) current[p] = aiGetKey(p);
-  try { localStorage.setItem(AI_PERSIST_PREF, persist ? '1' : '0'); } catch (e) { /* storage non disponibile */ }
-  for (const p of Object.keys(current)) if (current[p]) aiSetKey(p, current[p]);
+  for (const p of AI_PROVIDERS) current[p] = aiGetKey(p);
+  aiPersistChoice = !!persist;
+  let ok = true;
+  try { localStorage.setItem(AI_PERSIST_PREF, persist ? '1' : '0'); } catch (e) { ok = false; }
+  for (const p of AI_PROVIDERS) if (current[p] && !aiSetKey(p, current[p])) ok = false;
+  return ok;
 }
 
-// Migrazione una tantum dai nomi usati fino alla versione di prova.
+// Migrazione una tantum dai nomi usati fino alla versione di prova: rispetta la scelta "solo sessione".
 (function aiMigrateStorage() {
-  try {
-    for (const p of ['gemini', 'openai', 'claude']) {
-      const old = localStorage.getItem(`${p}_api_key`);
-      if (old && !localStorage.getItem(AI_KEY_PREFIX + p)) localStorage.setItem(AI_KEY_PREFIX + p, old);
-      localStorage.removeItem(`${p}_api_key`);
+  for (const p of AI_PROVIDERS) {
+    let old = null;
+    try { old = localStorage.getItem(`${p}_api_key`); } catch (e) { old = null; }
+    if (old && !aiGetKey(p)) {
+      if (aiPersistChoice) { try { localStorage.setItem(AI_KEY_PREFIX + p, old); } catch (e) { aiSessionKeys[p] = old; } }
+      else aiSessionKeys[p] = old;
     }
+    aiRemoveStored(`${p}_api_key`);
+  }
+  try {
     const oldModel = localStorage.getItem('active_model_spec');
     if (oldModel && !localStorage.getItem('paa.model')) localStorage.setItem('paa.model', oldModel);
     localStorage.removeItem('active_model_spec');

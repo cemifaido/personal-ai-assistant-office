@@ -41,6 +41,9 @@ Prima versione pubblica. Sostituisce il prototipo con server Node locale e macro
 - Installatore: la parte eseguita come amministratore riceve codice e manifest incorporati nel comando (nessun file intermedio in cartelle scrivibili dall'utente).
 - Avvertenze per proteggere la chiave API (chiave dedicata, limiti di spesa, revoca) nell'installatore, nella guida e nell'informativa.
 - Ramo main protetto da cancellazione e riscrittura della storia.
+- Opzione "solo sessione" corretta: la scelta vale subito in memoria (anche se il suo salvataggio fallisce), la migrazione delle vecchie chiavi la rispetta, le cancellazioni non riuscite vengono segnalate.
+- Installatore: il catalogo di Word/Excel/PowerPoint viene considerato attendibile solo dopo una verifica senza privilegi di condivisione, cartella, permessi e manifest; in caso di rifiuto o errore nessuna registrazione residua. La disinstallazione rimuove solo i propri file e segnala l'esito.
+- Outlook: la pulizia delle chiavi della vecchia macro dal registro viene verificata, ritentata a ogni avvio e segnalata se non riesce.
 
 ### Revisione
 - Correzioni dalle revisioni di Codex e Gemini: conferma di sovrascrittura legata a foglio, indirizzo e contenuto (anche celle con formule); add-in Outlook protetto da errori del modello a oggetti dopo l'attesa; script della condivisione che rifiuta cartelle non sicure e condivisioni non sue e imposta i permessi prima di scrivere; PowerPoint che non sovrascrive modifiche fatte dopo la proposta; foglio dei grafici appena creato; manifest senza AppDomain; pulizia della cache per tutte le versioni dei comandi; build che rileva la versione di Visual Studio.

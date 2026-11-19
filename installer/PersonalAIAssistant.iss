@@ -17,6 +17,7 @@
 #define AddinId "ecb39046-2d14-45ba-b5ea-94524ea141db"
 #define EncCrea FileRead(FileOpen(BuildDir + '\enc-crea.txt'))
 #define EncRimuovi FileRead(FileOpen(BuildDir + '\enc-rimuovi.txt'))
+#define EncVerifica FileRead(FileOpen(BuildDir + '\enc-verifica.txt'))
 #define ShareUnc "\\localhost\PersonalAIAssistant$"
 #define CatalogId "{{0B7E4C2A-91D3-4F6E-8A25-6C1D9E3F7A40}"
 #define InclusionId "{{5D8A1F36-2C47-4B9E-A0E3-8F61B2D74C95}"
@@ -89,10 +90,8 @@ Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\WEF\Developer"; ValueName: "
 Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\WEF\Developer\{#AddinId}"; ValueType: none; Flags: deletekey
 Root: HKCU; Subkey: "Software\Microsoft\Office\Outlook\Addins\PersonalAIAssistant.Spike"; ValueType: none; Flags: deletekey
 
-; Word/Excel: catalogo attendibile mostrato nel menu
-Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\{#CatalogId}"; ValueType: string; ValueName: "Id"; ValueData: "{#CatalogId}"; Tasks: wordexcel; Flags: uninsdeletekey
-Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\{#CatalogId}"; ValueType: string; ValueName: "Url"; ValueData: "{#ShareUnc}"; Tasks: wordexcel
-Root: HKCU; Subkey: "Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\{#CatalogId}"; ValueType: dword; ValueName: "Flags"; ValueData: "1"; Tasks: wordexcel
+; Word/Excel/PowerPoint: il catalogo attendibile NON si registra qui ma nel codice (EnsureShare), solo dopo
+; la verifica di condivisione, permessi e manifest; in disinstallazione lo rimuove il codice.
 
 ; Outlook: add-in VSTO per l'utente corrente
 Root: HKCU; Subkey: "{#OutlookKey}"; ValueType: string; ValueName: "FriendlyName"; ValueData: "Personal AI Assistant"; Tasks: outlook; Flags: uninsdeletekey
@@ -208,31 +207,63 @@ begin
   Result := ShellExec('runas', ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Params, '', SW_HIDE, ewWaitUntilTerminated, RC);
 end;
 
-function ShareHasCurrentManifest(): Boolean;
+{ Verifica SENZA privilegi (condivisione, cartella, permessi, manifest atteso incorporato): true = conforme. }
+function VerifyShare(): Boolean;
 var
-  Shared, Local: AnsiString;
+  RC: Integer;
 begin
-  Result := LoadStringFromFile('{#ShareUnc}\manifest.xml', Shared) and
-            LoadStringFromFile(ExpandConstant('{app}\WordExcel\manifest.xml'), Local) and (Shared = Local);
+  Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+                 '-NoProfile -NonInteractive -EncodedCommand ' + '{#EncVerifica}', '', SW_HIDE, ewWaitUntilTerminated, RC) and (RC = 0);
+  Log('Verifica condivisione, esito: ' + IntToStr(RC));
+end;
+
+{ Il catalogo e' attendibile solo dopo una verifica riuscita; altrimenti si rimuove ogni registrazione precedente. }
+procedure RegisterCatalog(Trusted: Boolean);
+var
+  Key: String;
+begin
+  Key := 'Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\{#CatalogId}';
+  if Trusted then
+  begin
+    RegWriteStringValue(HKCU, Key, 'Id', '{#CatalogId}');
+    RegWriteStringValue(HKCU, Key, 'Url', '{#ShareUnc}');
+    RegWriteDWordValue(HKCU, Key, 'Flags', 1);
+  end
+  else if RegKeyExists(HKCU, Key) then
+    RegDeleteKeyIncludingSubkeys(HKCU, Key);
 end;
 
 procedure EnsureShare();
 var
   RC: Integer;
 begin
-  if ShareHasCurrentManifest() then
+  if VerifyShare() then
   begin
-    Log('Condivisione gia'' presente e aggiornata: nessuna elevazione.');
+    Log('Condivisione conforme: nessuna elevazione.');
+    RegisterCatalog(True);
     Exit;
   end;
   if not RunShareScript('Crea', False, RC) then
   begin
-    MsgBox('Word ed Excel richiedono una conferma da amministratore, che non e'' stata concessa.' + #13#10 +
-           'Il resto e'' installato. Per Word ed Excel avvia di nuovo l''installazione quando puoi.', mbInformation, MB_OK);
+    RegisterCatalog(False);
+    MsgBox('Word, Excel e PowerPoint richiedono una conferma da amministratore, che non e'' stata concessa.' + #13#10 +
+           'Outlook e'' installato. Per Word, Excel e PowerPoint avvia di nuovo l''installazione quando puoi.', mbInformation, MB_OK);
     Exit;
   end;
+  if RC = 0 then
+  begin
+    if VerifyShare() then
+      RegisterCatalog(True)
+    else
+    begin
+      RegisterCatalog(False);
+      MsgBox('La cartella condivisa e'' stata preparata ma la verifica finale non e'' riuscita: per sicurezza il componente per Word, Excel e PowerPoint non e'' stato attivato.', mbError, MB_OK);
+    end;
+    Exit;
+  end;
+  RegisterCatalog(False);
   if RC = 2 then
-    MsgBox('Il servizio di Windows "Server" non e'' attivo: Word ed Excel non possono usare il catalogo.' + #13#10 +
+    MsgBox('Il servizio di Windows "Server" non e'' attivo: Word, Excel e PowerPoint non possono usare il catalogo.' + #13#10 +
            'Chiedi all''amministratore del PC di attivarlo, poi ripeti l''installazione.', mbError, MB_OK)
   else if RC = 4 then
     MsgBox('La cartella C:\ProgramData\PersonalAIAssistant esiste gia'' ma non e'' sicura (creata da un utente non amministratore o collegamento ad altra cartella).' + #13#10 +
@@ -321,11 +352,22 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   RC: Integer;
 begin
+  if CurUninstallStep = usUninstall then
+    RegisterCatalog(False);
   if (CurUninstallStep = usUninstall) and DirExists('{#ShareUnc}') then
     if MsgBox('Rimuovere anche la cartella condivisa del PC (\\localhost\PersonalAIAssistant$)?' + #13#10#13#10 +
               'Rispondi No se altri utenti di questo PC usano Personal AI Assistant.' + #13#10 +
               'Serve una conferma da amministratore.', mbConfirmation, MB_YESNO) = IDYES then
-      RunShareScript('Rimuovi', True, RC);
+    begin
+      if not RunShareScript('Rimuovi', True, RC) then
+        MsgBox('La cartella condivisa non e'' stata rimossa: la conferma da amministratore non e'' stata concessa.', mbInformation, MB_OK)
+      else if RC = 6 then
+        MsgBox('Cartella condivisa rimossa. In C:\ProgramData\PersonalAIAssistant sono rimasti file non creati da Personal AI Assistant: non sono stati toccati.', mbInformation, MB_OK)
+      else if RC = 5 then
+        MsgBox('La condivisione PersonalAIAssistant$ non appartiene a Personal AI Assistant e non e'' stata toccata.', mbInformation, MB_OK)
+      else if RC <> 0 then
+        MsgBox('Rimozione della cartella condivisa non riuscita (codice ' + IntToStr(RC) + '). Chiedi all''amministratore di rimuovere la condivisione PersonalAIAssistant$.', mbError, MB_OK);
+    end;
   if CurUninstallStep = usPostUninstall then
     DeleteAddinCache();
 end;

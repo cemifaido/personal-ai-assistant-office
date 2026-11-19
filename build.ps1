@@ -81,7 +81,8 @@ $msOut = New-Object IO.MemoryStream
 $gzw = New-Object IO.Compression.GZipStream($msOut, [IO.Compression.CompressionMode]::Compress)
 $gzw.Write($raw, 0, $raw.Length); $gzw.Close()
 $manifestGz = [Convert]::ToBase64String($msOut.ToArray())
-foreach ($a in @(@('crea', "-Azione Crea -ManifestGzB64 '$manifestGz'"), @('rimuovi', '-Azione Rimuovi'))) {
+foreach ($a in @(@('crea', "-Azione Crea -ManifestGzB64 '$manifestGz'"), @('rimuovi', '-Azione Rimuovi'),
+                 @('verifica', "-Azione Verifica -ManifestGzB64 '$manifestGz'"))) {
   $cmd = "& {`n$shareScript`n} $($a[1])"
   $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
   if ($enc.Length -gt 30000) { throw "Comando elevato troppo lungo ($($enc.Length) caratteri)." }
