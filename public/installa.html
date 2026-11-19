@@ -9,102 +9,172 @@
 </head>
 <body>
 <main>
-  <header>
-    <h1>Personal AI Assistant <span class="badge">beta 0.1.0</span></h1>
-    <p class="sub">Assistente AI per Word, Excel, PowerPoint e Outlook per Windows, con Google Gemini, OpenAI o Anthropic Claude e la tua chiave API.</p>
+  <header class="site-header">
+    <div class="brand-wrapper">
+      <img class="brand-icon" src="assets/icon-80.png" alt="Icona Personal AI Assistant" width="52" height="52">
+      <div class="brand-meta">
+        <div class="brand-title-row">
+          <h1 class="brand-title">Personal AI Assistant</h1>
+          <span class="badge badge-beta">beta 0.1.0</span>
+        </div>
+        <p class="sub">Assistente AI per Word, Excel, PowerPoint e Outlook per Windows, con Google Gemini, OpenAI o Anthropic Claude e la tua chiave API.</p>
+      </div>
+    </div>
+    <nav class="site-nav" aria-label="Navigazione pagine">
+      <a class="nav-link active" href="installa.html">Guida installazione</a>
+      <a class="nav-link" href="privacy.html">Informativa privacy</a>
+      <a class="nav-link" id="nav-repo" href="#">Repository GitHub</a>
+    </nav>
   </header>
 
-  <div class="note" role="note">
-    <p><strong>Prima di iniziare: serve una tua chiave API.</strong> Personal AI Assistant non funziona senza almeno una chiave API di
+  <div class="note-key-requirement" role="note">
+    <div class="note-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9l-1.5-1.5L5 9a7 7 0 1 0 9.9 9.9L22 12v-3l-3-3v-2l-2-2Z"/><circle cx="7.5" cy="16.5" r="1.5"/></svg>
+      Prima di iniziare: serve una tua chiave API
+    </div>
+    <p>Personal AI Assistant non funziona senza almeno una chiave API di
       Google Gemini, OpenAI o Anthropic Claude. La chiave <strong>non è inclusa</strong> nell'installazione: la ottieni tu dal sito del provider
       ed è legata al <strong>tuo account e al tuo contratto</strong> con quel provider (piano gratuito o a pagamento, limiti, costi e condizioni sono i suoi).
       Senza chiave il pannello si apre ma non può elaborare nulla.</p>
-    <p>Il modo più semplice per iniziare gratis: una chiave <a href="https://aistudio.google.com/apikey">Google AI Studio</a>.</p>
+    <p>Il modo più semplice per iniziare gratis: una chiave <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
   </div>
 
-  <div class="card">
+  <div class="hero-card">
     <p><strong>Cosa fa:</strong> in Word riscrive, corregge, riassume e traduce il testo selezionato o risponde a domande sul documento;
       in Excel genera formule in italiano, analizza i dati e crea grafici; in PowerPoint crea slide da una scaletta e migliora i testi; in Outlook riassume le email selezionate e prepara bozze di risposta.</p>
-    <p><a class="btn" id="download" href="#">Scarica l'installazione</a></p>
-    <p class="sub" id="download-note">Scegli il file <code>PersonalAIAssistant-…-Setup.exe</code> nell'ultima versione pubblicata.</p>
+    <div class="hero-actions">
+      <div class="hero-actions-row">
+        <a class="btn" id="download" href="#">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Scarica l'installazione
+        </a>
+        <span class="sub" id="download-note">Scegli il file <code>PersonalAIAssistant-…-Setup.exe</code> nell'ultima versione pubblicata.</span>
+      </div>
+    </div>
   </div>
 
   <h2>Requisiti</h2>
-  <ul>
-    <li>Windows 10 o 11 e Microsoft Office desktop per Windows (Word, Excel, PowerPoint e Outlook classico).
-      Provato su Office LTSC 2024 a 32 bit; altre edizioni non sono ancora state verificate (vedi sotto).</li>
-    <li>PowerPoint: le funzioni <em>Crea slide</em> e <em>Migliora slide</em> richiedono Office 2024 o Microsoft 365.</li>
-    <li>Per Word ed Excel, <strong>una conferma da amministratore</strong> la prima volta su ogni PC (vedi sotto).</li>
-    <li>Una chiave API di almeno un provider: <a href="https://aistudio.google.com/apikey">Google Gemini</a>,
-      <a href="https://platform.openai.com/api-keys">OpenAI</a> o <a href="https://console.anthropic.com/settings/keys">Anthropic Claude</a>.</li>
-    <li><strong>Non supportati:</strong> il nuovo Outlook per Windows, Outlook sul web e Office per Mac.</li>
-  </ul>
+  <div class="card">
+    <ul>
+      <li>Windows 10 o 11 e Microsoft Office desktop per Windows (Word, Excel, PowerPoint e Outlook classico).
+        Provato su Office LTSC 2024 a 32 bit; altre edizioni non sono ancora state verificate (vedi sotto).</li>
+      <li>PowerPoint: le funzioni <em>Crea slide</em> e <em>Migliora slide</em> richiedono Office 2024 o Microsoft 365.</li>
+      <li>Per Word, Excel e PowerPoint, <strong>una conferma da amministratore</strong> la prima volta su ogni PC (vedi sotto).</li>
+      <li>Una chiave API di almeno un provider: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google Gemini</a>,
+        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI</a> o <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Claude</a>.</li>
+      <li><strong>Non supportati:</strong> il nuovo Outlook per Windows, Outlook sul web e Office per Mac.</li>
+    </ul>
+  </div>
 
   <h2>Installazione</h2>
+  <div class="steps-container">
+    <article class="step-card">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <h3 class="step-title">Avvisi di Windows (installazione non ancora firmata)</h3>
+      </div>
+      <p>Questa è una versione beta e l'installatore <strong>non è firmato digitalmente</strong>: Windows non conosce l'editore e può mostrare avvisi. Non indica un problema nel file.</p>
+      <ol>
+        <li>Se il browser avvisa che il file può essere pericoloso, scegli <em>Mantieni</em>.</li>
+        <li>Prima di aprirlo: clic destro sul file → <em>Proprietà</em> → spunta <strong>Annulla blocco</strong> → <em>OK</em>.</li>
+        <li>Se compare <em>«Windows ha protetto il PC»</em>: <strong>Ulteriori informazioni</strong> → <strong>Esegui comunque</strong>.</li>
+      </ol>
+      <p>Per essere sicuro che il file sia quello originale, confronta l'impronta SHA-256 con quella indicata nella pagina della versione:</p>
+      <pre><code>Get-FileHash .\PersonalAIAssistant-0.1.0-Setup.exe -Algorithm SHA256</code></pre>
+    </article>
 
-  <h3>1. Avvisi di Windows (installazione non ancora firmata)</h3>
-  <p>Questa è una versione beta e l'installatore <strong>non è firmato digitalmente</strong>: Windows non conosce l'editore e può mostrare avvisi. Non indica un problema nel file.</p>
-  <ol>
-    <li>Se il browser avvisa che il file può essere pericoloso, scegli <em>Mantieni</em>.</li>
-    <li>Prima di aprirlo: clic destro sul file → <em>Proprietà</em> → spunta <strong>Annulla blocco</strong> → <em>OK</em>.</li>
-    <li>Se compare <em>«Windows ha protetto il PC»</em>: <strong>Ulteriori informazioni</strong> → <strong>Esegui comunque</strong>.</li>
-  </ol>
-  <p>Per essere sicuro che il file sia quello originale, confronta l'impronta SHA-256 con quella indicata nella pagina della versione:</p>
-  <pre>Get-FileHash .\PersonalAIAssistant-0.1.0-Setup.exe -Algorithm SHA256</pre>
+    <article class="step-card">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <h3 class="step-title">Avanti, avanti, fine</h3>
+      </div>
+      <p>Chiudi Word, Excel e Outlook e avvia l'installazione. A metà, Windows chiede <em>«Consentire a questa app di apportare modifiche?»</em> per
+        <strong>Windows PowerShell</strong> (editore verificato: Microsoft): rispondi <strong>Sì</strong>. Se il tuo utente non è amministratore, servono nome e password di un amministratore.</p>
+      <div class="shot-container">
+        <img class="shot" src="assets/guida/uac.png" alt="Richiesta di Windows: consentire a Windows PowerShell di apportare modifiche" width="450">
+      </div>
+      <div class="note"><strong>Perché serve:</strong> Office accetta i componenti aggiuntivi di Word ed Excel solo da una cartella di rete.
+        L'installazione crea sul PC la cartella condivisa nascosta <code>\\localhost\PersonalAIAssistant$</code>, <strong>in sola lettura</strong>,
+        che contiene soltanto il file di configurazione del componente. Succede la prima volta su ogni PC e di nuovo solo se un aggiornamento cambia il file di configurazione. Outlook non la richiede.</div>
+    </article>
 
-  <h3>2. Avanti, avanti, fine</h3>
-  <p>Chiudi Word, Excel e Outlook e avvia l'installazione. A metà, Windows chiede <em>«Consentire a questa app di apportare modifiche?»</em> per
-    <strong>Windows PowerShell</strong> (editore verificato: Microsoft): rispondi <strong>Sì</strong>. Se il tuo utente non è amministratore, servono nome e password di un amministratore.</p>
-  <img class="shot" src="assets/guida/uac.png" alt="Richiesta di Windows: consentire a Windows PowerShell di apportare modifiche" width="450">
-  <div class="note"><strong>Perché serve:</strong> Office accetta i componenti aggiuntivi di Word ed Excel solo da una cartella di rete.
-    L'installazione crea sul PC la cartella condivisa nascosta <code>\\localhost\PersonalAIAssistant$</code>, <strong>in sola lettura</strong>,
-    che contiene soltanto il file di configurazione del componente. Succede la prima volta su ogni PC e di nuovo solo se un aggiornamento cambia il file di configurazione. Outlook non la richiede.</div>
+    <article class="step-card">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <h3 class="step-title">Word, Excel e PowerPoint: aggiungi il componente (una sola volta)</h3>
+      </div>
+      <p>Apri Word (poi lo stesso in Excel e in PowerPoint) e vai su <strong>Home → Componenti aggiuntivi (Add-ins) → Altri componenti aggiuntivi</strong>,
+        scheda <strong>CARTELLA CONDIVISA</strong>, seleziona <strong>Personal AI Assistant</strong> e premi <strong>Aggiungi</strong>.</p>
+      <div class="shot-container">
+        <img class="shot" src="assets/guida/aggiungi.png" alt="Finestra Componenti aggiuntivi di Office, scheda Cartella condivisa, pulsante Aggiungi" width="560">
+      </div>
+      <p>Da quel momento trovi la scheda <strong>Personal AI</strong> nella barra in alto, a ogni avvio. Il componente non compare nell'elenco rapido del menu <em>Add-ins</em>: si usa dalla scheda.</p>
+      <div class="shot-container">
+        <img class="shot" src="assets/guida/scheda.png" alt="Scheda Personal AI con il pulsante Apri assistente" width="760">
+      </div>
+    </article>
 
-  <h3>3. Word, Excel e PowerPoint: aggiungi il componente (una sola volta)</h3>
-  <p>Apri Word (poi lo stesso in Excel e in PowerPoint) e vai su <strong>Home → Componenti aggiuntivi (Add-ins) → Altri componenti aggiuntivi</strong>,
-    scheda <strong>CARTELLA CONDIVISA</strong>, seleziona <strong>Personal AI Assistant</strong> e premi <strong>Aggiungi</strong>.</p>
-  <img class="shot" src="assets/guida/aggiungi.png" alt="Finestra Componenti aggiuntivi di Office, scheda Cartella condivisa, pulsante Aggiungi" width="560">
-  <p>Da quel momento trovi la scheda <strong>Personal AI</strong> nella barra in alto, a ogni avvio. Il componente non compare nell'elenco rapido del menu <em>Add-ins</em>: si usa dalla scheda.</p>
-  <img class="shot" src="assets/guida/scheda.png" alt="Scheda Personal AI con il pulsante Apri assistente" width="760">
+    <article class="step-card">
+      <div class="step-header">
+        <span class="step-number">4</span>
+        <h3 class="step-title">La tua chiave API (obbligatoria)</h3>
+      </div>
+      <p>Senza una chiave il componente non elabora nulla. La chiave è personale e non è fornita da Personal AI Assistant: Al primo utilizzo il pannello apre le impostazioni (ingranaggio): premi <strong>Ottieni chiave</strong> accanto al provider, crea la chiave nel suo sito, incollala e premi <strong>Salva chiavi</strong>.
+        La più semplice da ottenere è quella di Google Gemini. In Outlook: <em>Home → Personal AI → Impostazioni</em>.</p>
+    </article>
 
-  <h3>4. La tua chiave API (obbligatoria)</h3>
-  <p>Senza una chiave il componente non elabora nulla. La chiave è personale e non è fornita da Personal AI Assistant: Al primo utilizzo il pannello apre le impostazioni (ingranaggio): premi <strong>Ottieni chiave</strong> accanto al provider, crea la chiave nel suo sito, incollala e premi <strong>Salva chiavi</strong>.
-    La più semplice da ottenere è quella di Google Gemini. In Outlook: <em>Home → Personal AI → Impostazioni</em>.</p>
-
-  <h3>5. Outlook classico</h3>
-  <p>Nella scheda <strong>Home</strong> trovi il gruppo <strong>Personal AI</strong>: <em>Riassumi selezionate</em> (seleziona più email con Ctrl+clic),
-    <em>Rispondi con AI</em> e <em>Impostazioni</em>. Si apre sempre una bozza da rileggere: nessuna email viene inviata automaticamente.</p>
+    <article class="step-card">
+      <div class="step-header">
+        <span class="step-number">5</span>
+        <h3 class="step-title">Outlook classico</h3>
+      </div>
+      <p>Nella scheda <strong>Home</strong> trovi il gruppo <strong>Personal AI</strong>: <em>Riassumi selezionate</em> (seleziona più email con Ctrl+clic),
+        <em>Rispondi con AI</em> e <em>Impostazioni</em>. Si apre sempre una bozza da rileggere: nessuna email viene inviata automaticamente.</p>
+    </article>
+  </div>
 
   <h2>I tuoi dati</h2>
-  <p>Le chiavi restano sul tuo PC e i testi vanno direttamente al provider che scegli, senza passare da server del progetto.
-    Dettagli nell'<a href="privacy.html">informativa privacy</a>.</p>
+  <div class="card">
+    <p>Le chiavi restano sul tuo PC e i testi vanno direttamente al provider che scegli, senza passare da server del progetto.
+      Dettagli nell'<a href="privacy.html">informativa privacy</a>.</p>
+  </div>
 
   <h2>Disinstallazione</h2>
-  <p><em>Impostazioni → App → App installate → Personal AI Assistant → Disinstalla</em>. Alla fine viene chiesto se rimuovere anche la cartella condivisa del PC
-    (rispondi No se altri utenti del PC usano Personal AI Assistant). Le chiavi del pannello di Word/Excel si cancellano dal pannello stesso (<em>Cancella</em>) prima di disinstallare.</p>
+  <div class="card">
+    <p><em>Impostazioni → App → App installate → Personal AI Assistant → Disinstalla</em>. Alla fine viene chiesto se rimuovere anche la cartella condivisa del PC
+      (rispondi No se altri utenti del PC usano Personal AI Assistant). Le chiavi del pannello di Word/Excel si cancellano dal pannello stesso (<em>Cancella</em>) prima di disinstallare.</p>
+  </div>
 
   <h2>Cosa è stato provato</h2>
-  <p>Beta 0.1.0, Windows 11 con Office LTSC 2024 a 32 bit, utente amministratore e utente standard.</p>
-  <table>
-    <tr><th>Parte</th><th>Stato</th></tr>
-    <tr><td>Installazione, cartella condivisa, <em>Aggiungi</em></td><td>Provati su utente standard</td></tr>
-    <tr><td>Word ed Excel (pannello, formule, analisi)</td><td>Provati in Office</td></tr>
-    <tr><td>Excel – grafici</td><td>Proposte provate; inserimento in Excel da verificare</td></tr>
-    <tr><td>PowerPoint</td><td>Proposte provate; non ancora provato dentro PowerPoint</td></tr>
-    <tr><td>Outlook</td><td>Caricamento e rete provati in Outlook; chiamate ai modelli provate fuori da Outlook</td></tr>
-    <tr><td>Office a 64 bit, Microsoft 365, 2016–2021</td><td>Non provati</td></tr>
-  </table>
+  <p class="sub">Beta 0.1.0, Windows 11 con Office LTSC 2024 a 32 bit, utente amministratore e utente standard.</p>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr><th>Parte</th><th>Stato</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Installazione, cartella condivisa, <em>Aggiungi</em></td><td><span class="badge-status success">Provati su utente standard</span></td></tr>
+        <tr><td>Word ed Excel (pannello, formule, analisi)</td><td><span class="badge-status success">Provati in Office</span></td></tr>
+        <tr><td>Excel – grafici</td><td><span class="badge-status pending">Proposte provate; inserimento in Excel da verificare</span></td></tr>
+        <tr><td>PowerPoint</td><td><span class="badge-status pending">Proposte provate; non ancora provato dentro PowerPoint</span></td></tr>
+        <tr><td>Outlook</td><td><span class="badge-status pending">Caricamento e rete provati in Outlook; chiamate ai modelli provate fuori da Outlook</span></td></tr>
+        <tr><td>Office a 64 bit, Microsoft 365, 2016–2021</td><td><span class="badge-status neutral">Non provati</span></td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <h2>Limiti noti della beta</h2>
-  <ul>
-    <li>Sui PC aziendali senza diritti di amministratore, o con software che controlla le elevazioni, l'installazione di Word/Excel può richiedere l'intervento dell'IT. Outlook si installa comunque.</li>
-    <li>I risultati dell'AI possono contenere errori: rileggili sempre. In Word si annulla con un solo Ctrl+Z.</li>
-    <li>Formule Excel in italiano o in inglese; Excel in altre lingue riceve le formule in inglese.</li>
-  </ul>
+  <div class="card">
+    <ul>
+      <li>Sui PC aziendali senza diritti di amministratore, o con software che controlla le elevazioni, l'installazione di Word/Excel può richiedere l'intervento dell'IT. Outlook si installa comunque.</li>
+      <li>I risultati dell'AI possono contenere errori: rileggili sempre. In Word si annulla con un solo Ctrl+Z.</li>
+      <li>Formule Excel in italiano o in inglese; Excel in altre lingue riceve le formule in inglese.</li>
+    </ul>
+  </div>
 
-  <footer>
-    Personal AI Assistant è un progetto indipendente, non affiliato a Microsoft, Google, OpenAI o Anthropic.
-    · <a id="repo-link" href="#">Codice sorgente e segnalazioni</a> · Licenza MIT
+  <footer class="site-footer">
+    <p>Personal AI Assistant è un progetto indipendente, non affiliato a Microsoft, Google, OpenAI o Anthropic.
+    · <a id="repo-link" href="#">Codice sorgente e segnalazioni</a> · Licenza MIT</p>
   </footer>
 </main>
 <script>
@@ -116,6 +186,8 @@
       var base = 'https://github.com/' + owner + '/' + repo;
       document.getElementById('download').href = base + '/releases/latest';
       document.getElementById('repo-link').href = base;
+      var navRepo = document.getElementById('nav-repo');
+      if (navRepo) navRepo.href = base;
     }
   })();
 </script>
