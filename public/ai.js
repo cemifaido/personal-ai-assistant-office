@@ -75,7 +75,8 @@ function aiBuildUserContent(prompt, context) {
 function aiClassifyHttpError(provider, status, data) {
   const apiMsg = data?.error?.message || data?.error?.type || data?.message || '';
   let msg;
-  if (status === 401 || status === 403) msg = `Chiave ${AI_PROVIDER_NAMES[provider]} non valida o senza permessi.`;
+  const badKey = status === 401 || status === 403 || (status === 400 && /api key/i.test(apiMsg)); // Gemini: 400
+  if (badKey) msg = `Chiave ${AI_PROVIDER_NAMES[provider]} non valida o senza permessi.`;
   else if (status === 404) msg = `Modello non trovato presso ${AI_PROVIDER_NAMES[provider]}: scegline un altro.`;
   else if (status === 429) msg = `Limite di richieste o quota esaurita (${AI_PROVIDER_NAMES[provider]}).`;
   else if (status >= 500) msg = `Il servizio ${AI_PROVIDER_NAMES[provider]} è temporaneamente non disponibile (${status}).`;

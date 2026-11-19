@@ -28,3 +28,8 @@ spike/**/bin/
 spike/**/obj/
 spike/**/out/
 *.user
+
+# Output di compilazione add-in Outlook e installatore
+outlook/**/bin/
+outlook/**/obj/
+release/
