@@ -1106,6 +1106,8 @@ async function pptReadOutline() {
   });
 }
 
+const PPT_LAYOUTS = ['titolo', 'sezione', 'contenuto', 'confronto', 'numeri', 'passi', 'tabella'];
+
 async function handlePptOutline() {
   const request = document.getElementById('ppt-outline-prompt').value.trim();
   if (!request) { notify('Descrivi le slide da creare.', 'warn'); return; }
@@ -1118,9 +1120,17 @@ async function handlePptOutline() {
   return runAI('Proposta di slide', {
     prompt: `L'utente vuole aggiungere slide a una presentazione: "${request}".
 Rispondi SOLO con un oggetto JSON valido, senza altro testo:
-{"slides": [ {"titolo": "titolo breve", "punti": ["punto 1", "punto 2", "..."]} ]}
-Regole: al massimo ${PPT_MAX_SLIDES} slide e ${PPT_MAX_POINTS} punti per slide; punti brevi (massimo 15 parole), senza simboli di elenco iniziali;
-lingua della richiesta; coerenza con le slide già presenti se indicate nel contesto, senza ripeterle.`,
+{"slides": [ { "layout": "...", "titolo": "...", ...campi del layout... } ]}
+Layout disponibili (scegli il piu' adatto al contenuto di ogni slide, variando quando ha senso):
+- "titolo": copertina. Campi: "titolo", "sottotitolo". Solo come prima slide e solo se la presentazione e' vuota o l'utente chiede una presentazione nuova.
+- "sezione": separatore di capitolo. Campi: "titolo", "sottotitolo" (facoltativo).
+- "contenuto": elenco puntato. Campi: "titolo", "punti" (2-${PPT_MAX_POINTS} punti brevi).
+- "confronto": due colonne affiancate (pro/contro, prima/dopo, opzione A/B). Campi: "titolo", "colonne": [{"titolo": "...", "punti": [...]}, {"titolo": "...", "punti": [...]}].
+- "numeri": 2-4 dati chiave in evidenza. Campi: "titolo", "numeri": [{"valore": "+18%", "etichetta": "crescita vendite"}]. USALO SOLO con numeri presenti nella richiesta dell'utente o nel contesto: non inventare dati.
+- "passi": processo o fasi in sequenza (3-6 passi). Campi: "titolo", "passi": ["fase 1", "fase 2", ...] (massimo 6 parole per passo).
+- "tabella": confronto strutturato. Campi: "titolo", "tabella": {"intestazioni": [...], "righe": [[...], ...]} (massimo 5 colonne e 6 righe, testi brevi).
+Regole: al massimo ${PPT_MAX_SLIDES} slide; testi brevi, senza simboli di elenco iniziali; lingua della richiesta;
+coerenza con le slide gia' presenti se indicate nel contesto, senza ripeterle.`,
     context: outline,
     system: 'Sei un esperto di presentazioni aziendali. Rispondi solo con JSON.',
     kind: 'ppt-slides'
@@ -1133,20 +1143,63 @@ function extractJson(text) {
   try { return JSON.parse(m[0]); } catch (e) { throw new Error('Proposta non leggibile: riprova.'); }
 }
 
+const pptText = (v, max) => String(v == null ? '' : v).replace(/^\s*[-•*]\s*/, '').trim().slice(0, max);
+const pptList = (a, n, max) => (Array.isArray(a) ? a : []).map(x => pptText(x, max)).filter(Boolean).slice(0, n);
+
+/** Valida e normalizza la proposta; una slide grafica incompleta ricade su "contenuto". */
 function parsePptSlides(text) {
   const data = extractJson(text);
   const slides = Array.isArray(data.slides) ? data.slides : [];
   if (!slides.length) throw new Error('La proposta non contiene slide.');
-  return slides.slice(0, PPT_MAX_SLIDES).map((sl) => ({
-    titolo: String(sl.titolo || '').trim().slice(0, 150),
-    punti: (Array.isArray(sl.punti) ? sl.punti : []).map(p => String(p).replace(/^\s*[-•*]\s*/, '').trim())
-      .filter(Boolean).slice(0, PPT_MAX_POINTS)
-  })).filter(sl => sl.titolo || sl.punti.length);
+  return slides.slice(0, PPT_MAX_SLIDES).map((sl) => {
+    let layout = PPT_LAYOUTS.includes(sl.layout) ? sl.layout : 'contenuto';
+    const out = { titolo: pptText(sl.titolo, 150), sottotitolo: pptText(sl.sottotitolo, 200),
+                  punti: pptList(sl.punti, PPT_MAX_POINTS, 200) };
+    if (layout === 'confronto') {
+      out.colonne = (Array.isArray(sl.colonne) ? sl.colonne : []).slice(0, 2)
+        .map(c => ({ titolo: pptText(c && c.titolo, 80), punti: pptList(c && c.punti, 6, 150) }));
+      if (out.colonne.length !== 2) layout = 'contenuto';
+    } else if (layout === 'numeri') {
+      out.numeri = (Array.isArray(sl.numeri) ? sl.numeri : []).slice(0, 4)
+        .map(n => ({ valore: pptText(n && n.valore, 16), etichetta: pptText(n && n.etichetta, 60) })).filter(n => n.valore);
+      if (out.numeri.length < 2) layout = 'contenuto';
+    } else if (layout === 'passi') {
+      out.passi = pptList(sl.passi, 6, 60);
+      if (out.passi.length < 2) layout = 'contenuto';
+    } else if (layout === 'tabella') {
+      const t = sl.tabella || {};
+      const head = pptList(t.intestazioni, 5, 40);
+      const rows = (Array.isArray(t.righe) ? t.righe : []).slice(0, 6)
+        .map(r => (Array.isArray(r) ? r : []).slice(0, head.length).map(c => pptText(c, 60)));
+      out.tabella = { intestazioni: head, righe: rows.map(r => r.concat(Array(Math.max(0, head.length - r.length)).fill(''))) };
+      if (head.length < 2 || !rows.length) layout = 'contenuto';
+    }
+    out.layout = layout;
+    if (layout === 'contenuto' && !out.punti.length) {
+      // contenuto di riserva dai campi grafici non validi
+      out.punti = [].concat(out.passi || [], (out.numeri || []).map(n => `${n.valore} ${n.etichetta}`),
+        ...(out.colonne || []).map(c => c.punti)).slice(0, PPT_MAX_POINTS);
+    }
+    return out;
+  }).filter(sl => sl.titolo || sl.punti.length || sl.layout !== 'contenuto');
 }
 
+const PPT_LAYOUT_NAMES = { titolo: 'copertina', sezione: 'sezione', contenuto: 'elenco', confronto: 'confronto',
+                           numeri: 'numeri chiave', passi: 'processo a passi', tabella: 'tabella' };
+
 function describePptSlides(slides) {
+  const body = (sl) => {
+    switch (sl.layout) {
+      case 'titolo': case 'sezione': return sl.sottotitolo ? `   ${sl.sottotitolo}` : '';
+      case 'confronto': return sl.colonne.map(c => `   [${c.titolo}] ${c.punti.join('; ')}`).join('\n');
+      case 'numeri': return sl.numeri.map(n => `   ${n.valore} — ${n.etichetta}`).join('\n');
+      case 'passi': return `   ${sl.passi.join(' → ')}`;
+      case 'tabella': return `   ${sl.tabella.intestazioni.join(' | ')} (${sl.tabella.righe.length} righe)`;
+      default: return sl.punti.map(p => `   • ${p}`).join('\n');
+    }
+  };
   return `Slide proposte (${slides.length}), da aggiungere in fondo alla presentazione:\n\n` +
-    slides.map((sl, i) => `${i + 1}. ${sl.titolo}\n${sl.punti.map(p => `   • ${p}`).join('\n')}`).join('\n\n') +
+    slides.map((sl, i) => `${i + 1}. [${PPT_LAYOUT_NAMES[sl.layout]}] ${sl.titolo}\n${body(sl)}`).join('\n\n') +
     '\n\nPremi "Inserisci" per creare le slide.';
 }
 
@@ -1209,41 +1262,156 @@ function describePptImprove(p) {
     '\n\nPremi "Sostituisci" per applicarli (Ctrl+Z per annullare).';
 }
 
+// Colori degli elementi grafici disegnati dal pannello (sobri, leggibili sui temi chiari comuni).
+const PPT_COLORS = { accent: '#0369A1', accentText: '#FFFFFF', soft: '#E0F2FE', softText: '#0C4A6E',
+                     band: '#F1F5F9', bandText: '#0F172A' };
+
+/** Layout del tema per nome (italiano o inglese); null se il tema non lo ha. */
+function pptFindLayout(layouts, kind) {
+  const names = {
+    titolo: /^(diapositiva titolo|title slide)$/i,
+    sezione: /^(intestazione sezione|section header)$/i,
+    contenuto: /^(titolo e contenuto|title and content)$/i,
+    confronto: /^(due contenuti|two content)$/i,
+    soloTitolo: /^(solo titolo|title only)$/i
+  };
+  const l = layouts.find(x => names[kind].test((x.name || '').trim()));
+  return l ? l.id : null;
+}
+
+function pptStyleShape(shape, fill, color, size, bold, align) {
+  shape.fill.setSolidColor(fill);
+  shape.lineFormat.visible = false;
+  const tr = shape.textFrame.textRange;
+  tr.font.color = color;
+  tr.font.size = size;
+  tr.font.bold = !!bold;
+  tr.paragraphFormat.horizontalAlignment = align || 'Center';
+  shape.textFrame.verticalAlignment = 'Middle';
+  shape.textFrame.wordWrap = true;
+}
+
+/** Disegna gli elementi grafici nell'area sotto il titolo. */
+function pptDrawGraphics(slide, spec, area) {
+  const G = PowerPoint.GeometricShapeType;
+  if (spec.layout === 'numeri') {
+    const n = spec.numeri.length, gap = 20, w = (area.width - gap * (n - 1)) / n, h = Math.min(170, area.height);
+    spec.numeri.forEach((it, i) => {
+      const left = area.left + i * (w + gap), top = area.top + (area.height - h) / 2;
+      const card = slide.shapes.addGeometricShape(G.roundRectangle, { left, top, width: w, height: h });
+      pptStyleShape(card, PPT_COLORS.soft, PPT_COLORS.softText, 12);
+      const val = slide.shapes.addTextBox(it.valore, { left, top: top + 18, width: w, height: 70 });
+      val.textFrame.textRange.font.size = 40;
+      val.textFrame.textRange.font.bold = true;
+      val.textFrame.textRange.font.color = PPT_COLORS.accent;
+      val.textFrame.textRange.paragraphFormat.horizontalAlignment = 'Center';
+      const lab = slide.shapes.addTextBox(it.etichetta, { left: left + 10, top: top + 92, width: w - 20, height: h - 100 });
+      lab.textFrame.textRange.font.size = 16;
+      lab.textFrame.textRange.font.color = PPT_COLORS.bandText;
+      lab.textFrame.textRange.paragraphFormat.horizontalAlignment = 'Center';
+      lab.textFrame.wordWrap = true;
+    });
+  } else if (spec.layout === 'passi') {
+    const n = spec.passi.length, overlap = 8, w = (area.width + overlap * (n - 1)) / n, h = 90;
+    const top = area.top + (area.height - h) / 2;
+    spec.passi.forEach((p, i) => {
+      const shape = slide.shapes.addGeometricShape(i === 0 ? G.homePlate : G.chevron,
+        { left: area.left + i * (w - overlap), top, width: w, height: h });
+      shape.textFrame.textRange.text = p;
+      pptStyleShape(shape, i % 2 ? PPT_COLORS.soft : PPT_COLORS.accent, i % 2 ? PPT_COLORS.softText : PPT_COLORS.accentText,
+                    n > 4 ? 12 : 14, true);
+    });
+  } else if (spec.layout === 'tabella') {
+    const head = spec.tabella.intestazioni, rows = spec.tabella.righe;
+    const cols = head.length, rh = Math.min(42, area.height / (rows.length + 1)), cw = area.width / cols;
+    [head].concat(rows).forEach((r, ri) => {
+      r.forEach((cell, ci) => {
+        const box = slide.shapes.addGeometricShape(G.rectangle,
+          { left: area.left + ci * cw, top: area.top + ri * rh, width: cw - 2, height: rh - 2 });
+        box.textFrame.textRange.text = cell || ' ';
+        pptStyleShape(box, ri === 0 ? PPT_COLORS.accent : (ri % 2 ? PPT_COLORS.band : '#FFFFFF'),
+                      ri === 0 ? PPT_COLORS.accentText : PPT_COLORS.bandText, rows.length > 4 ? 12 : 14, ri === 0, 'Left');
+      });
+    });
+  }
+}
+
 async function insertPptSlides(slides) {
+  const graphics = pptSupports('1.4');
   await PowerPoint.run(async (ctx) => {
     const pres = ctx.presentation;
-    // Layout "Titolo e contenuto" del tema, se riconoscibile; altrimenti quello predefinito.
-    let layoutId;
+    let layouts = [];
     try {
-      const layouts = pres.slideMasters.getItemAt(0).layouts;
-      layouts.load('items/id,items/name');
+      const coll = pres.slideMasters.getItemAt(0).layouts;
+      coll.load('items/id,items/name');
       await ctx.sync();
-      const l = layouts.items.find(x => /title and content|titolo e contenuto/i.test(x.name));
-      if (l) layoutId = l.id;
+      layouts = coll.items;
     } catch (e) { /* layout predefinito */ }
+    const ids = {
+      titolo: pptFindLayout(layouts, 'titolo'), sezione: pptFindLayout(layouts, 'sezione'),
+      contenuto: pptFindLayout(layouts, 'contenuto'), confronto: pptFindLayout(layouts, 'confronto'),
+      soloTitolo: pptFindLayout(layouts, 'soloTitolo')
+    };
+    // Un layout grafico senza "Solo titolo" nel tema, o senza API per le forme, ricade sull'elenco puntato.
+    const plan = slides.map(sl => {
+      let layout = sl.layout;
+      if (['numeri', 'passi', 'tabella'].includes(layout) && (!graphics || !ids.soloTitolo)) layout = 'contenuto';
+      if (layout === 'confronto' && !ids.confronto) layout = 'contenuto';
+      const layoutId = { titolo: ids.titolo, sezione: ids.sezione, contenuto: ids.contenuto, confronto: ids.confronto,
+                         numeri: ids.soloTitolo, passi: ids.soloTitolo, tabella: ids.soloTitolo }[layout] || ids.contenuto;
+      return { spec: sl, layout, layoutId };
+    });
 
     const before = pres.slides.getCount();
     await ctx.sync();
-    slides.forEach(() => pres.slides.add(layoutId ? { layoutId } : undefined));
+    plan.forEach(p => pres.slides.add(p.layoutId ? { layoutId: p.layoutId } : undefined));
     await ctx.sync();
-
     pres.slides.load('items');
     await ctx.sync();
     const added = pres.slides.items.slice(before.value);
-    const shapeLists = added.map(sl => { const sh = sl.shapes; sh.load('items/type'); return sh; });
+    const shapeLists = added.map(sl => { const sh = sl.shapes; sh.load('items/type,items/left,items/top,items/width,items/height'); return sh; });
     await ctx.sync();
 
-    shapeLists.forEach((sh, i) => {
-      const spec = slides[i];
-      const boxes = sh.items.filter(x => ['Placeholder', 'TextBox', 'GeometricShape'].includes(x.type));
-      const body = spec.punti.join('\n');
-      if (boxes[0]) boxes[0].textFrame.textRange.text = spec.titolo;
-      if (boxes[1]) boxes[1].textFrame.textRange.text = body;
-      else if (body) added[i].shapes.addTextBox(body, { left: 60, top: 140, width: 600, height: 320 });
-      if (!boxes[0] && spec.titolo) added[i].shapes.addTextBox(spec.titolo, { left: 60, top: 40, width: 600, height: 70 });
+    plan.forEach((p, i) => {
+      const slide = added[i], spec = p.spec;
+      const boxes = shapeLists[i].items.filter(x => ['Placeholder', 'TextBox', 'GeometricShape'].includes(x.type));
+      const title = boxes[0];
+      if (title) title.textFrame.textRange.text = spec.titolo;
+      else if (spec.titolo) slide.shapes.addTextBox(spec.titolo, { left: 60, top: 30, width: 840, height: 70 });
+
+      // Se il layout grafico non e' disponibile, i suoi contenuti diventano punti dell'elenco.
+      const bulletText = (p.layout === 'contenuto' && spec.layout !== 'contenuto'
+        ? [].concat(spec.punti, spec.passi || [], (spec.numeri || []).map(n => `${n.valore} ${n.etichetta}`),
+                    ...((spec.colonne || []).map(c => [c.titolo].concat(c.punti))),
+                    ((spec.tabella && spec.tabella.righe) || []).map(r => r.join(' – ')))
+        : spec.punti).filter(Boolean).join('\n');
+
+      if (p.layout === 'titolo' || p.layout === 'sezione') {
+        if (boxes[1]) boxes[1].textFrame.textRange.text = spec.sottotitolo || '';
+      } else if (p.layout === 'confronto') {
+        spec.colonne.forEach((c, k) => {
+          const target = boxes[k + 1];
+          if (!target) return;
+          target.textFrame.textRange.text = [c.titolo].concat(c.punti).join('\n');
+          if (c.titolo) target.textFrame.textRange.getSubstring(0, c.titolo.length).font.bold = true;
+        });
+      } else if (p.layout === 'contenuto') {
+        if (boxes[1]) boxes[1].textFrame.textRange.text = bulletText;
+        else if (bulletText) slide.shapes.addTextBox(bulletText, { left: 60, top: 140, width: 840, height: 340 });
+      } else {
+        // Area di disegno: sotto il titolo, con gli stessi margini laterali del titolo.
+        const t = title || { left: 48, top: 30, width: 864, height: 70 };
+        const slideW = t.left * 2 + t.width;
+        const top = t.top + t.height + 24;
+        const area = { left: t.left, top, width: t.width, height: Math.max(160, Math.round(slideW * 9 / 16) - top - 40) };
+        pptDrawGraphics(slide, spec, area);
+      }
     });
     await ctx.sync();
-    notify(`Aggiunte ${slides.length} slide in fondo alla presentazione.`, 'success');
+    const simplified = plan.filter(p => p.layout !== p.spec.layout).length;
+    notify(`Aggiunte ${slides.length} slide in fondo alla presentazione.` +
+      (simplified ? ` ${simplified} con layout semplificato (il tema o la versione di PowerPoint non ha il layout richiesto).` : '') +
+      '\nPer cambiare colori e caratteri: Progettazione → Temi.', 'success');
   });
 }
 
