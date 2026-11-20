@@ -71,8 +71,8 @@ I componenti avanzano separatamente; la compatibilità è questa:
 
 | Componente | Dove si aggiorna | Versione attuale | Note |
 |---|---|---|---|
-| Pannello Word/Excel/PowerPoint | Pages, a ogni push (tutti gli utenti alla prossima apertura) | `PAA_VERSION` in `public/ai.js` + commit | Funziona con qualsiasi manifest `0.1.0.0` |
-| Manifest Word/Excel/PowerPoint | Setup (cartella condivisa) | `0.1.0.0` | Cambiarlo solo se serve: richiede di nuovo la conferma da amministratore |
+| Pannello Word/Excel/PowerPoint | Pages, a ogni push (tutti gli utenti alla prossima apertura) | `PAA_VERSION` in `public/ai.js` + commit | Compatibile con i manifest `0.1.0.0` e `0.2.1.0` |
+| Manifest Word/Excel/PowerPoint | Setup (cartella condivisa) | `0.2.1.0` (allineato al programma dalla 0.2.1) | Ogni cambio richiede di nuovo la conferma da amministratore a chi aggiorna |
 | Add-in Outlook | Setup | uguale al programma | Indipendente dal pannello |
 | Installatore | Release | uguale al programma | |
 

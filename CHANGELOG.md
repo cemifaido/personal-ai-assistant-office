@@ -15,6 +15,9 @@ Interventi di affidabilita' proposti nella revisione dell'architettura (Codex) e
 - **Outlook: salvataggio delle impostazioni senza finestre di perdita.** Prima il file veniva cancellato e poi sostituito: un errore in mezzo lasciava senza impostazioni (chiavi comprese). Ora il nuovo file viene scritto, riletto e verificato, poi sostituito con `File.Replace` conservando la versione precedente come copia di backup. Al caricamento, se il file manca o e' danneggiato, le impostazioni vengono recuperate dalla copia di backup (o da un salvataggio interrotto) e le Impostazioni lo segnalano; un file danneggiato viene messo da parte, mai sovrascritto. Un file valido ma incompleto (es. `{}` o campi di tipo errato) non nasconde un backup utilizzabile; le impostazioni recuperate vanno controllate e salvate prima di inviare dati o verificare le chiavi (correzioni di Codex).
 - Pannello, modello locale: rifiutati nomi che iniziano per `127.` ma sono domini (es. `127.attacker.example`), ottetti oltre 255 e prefissi IPv6 abbreviati non privati (correzione di Codex).
 
+### Modificato
+- Versioni allineate: manifest di Word/Excel/PowerPoint, add-in di Outlook, installatore e pannello sono tutti alla 0.2.1. Chi aggiorna da una versione precedente deve dare **una volta** la conferma da amministratore, perche' cambia il manifest nella cartella condivisa.
+
 ### Sicurezza
 - Pubblicazione del pannello: i test automatici e i controlli di sintassi e del manifest sono obbligatori prima del deploy, che pubblica esattamente il pacchetto verificato; action fissate a SHA.
 

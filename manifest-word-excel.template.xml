@@ -5,7 +5,7 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>ecb39046-2d14-45ba-b5ea-94524ea141db</Id>
-  <Version>0.1.0.0</Version>
+  <Version>0.2.1.0</Version>
   <ProviderName>Personal AI Assistant</ProviderName>
   <DefaultLocale>it-IT</DefaultLocale>
   <DisplayName DefaultValue="Personal AI Assistant"/>
