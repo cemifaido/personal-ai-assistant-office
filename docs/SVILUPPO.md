@@ -99,6 +99,18 @@ nell'ambiente *github-pages* del repository.
 
 ## Prove manuali prima di una release
 
+Prima delle prove dentro Office, eseguire anche i controlli del salvataggio Outlook con Windows PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/outlook-settings.tests.ps1
+```
+
+Il test compila i sorgenti delle impostazioni e del catalogo in un ambiente isolato: usa una cartella temporanea
+e un percorso di registro dedicato, senza leggere o modificare le impostazioni dell'utente.
+Verifica sostituzione con backup, rifiuto di JSON incompleti, compatibilita' dei file precedenti e recupero.
+Le impostazioni recuperate devono essere controllate e salvate prima di usarle per richieste o verifiche delle chiavi:
+un backup puo' contenere chiavi, modelli o destinatari precedenti.
+
 - Utente Windows **standard** pulito: installazione, richiesta di elevazione, *Aggiungi* in Word ed Excel, scheda presente dopo riavvio.
 - Outlook: nessun avviso di fiducia, riassunto di più email con accenti ed elenchi, risposta con firma e citazione intatte.
 - PowerPoint: testo selezionato (sostituisci e nuova casella), creazione di slide da scaletta, miglioramento della slide selezionata, Ctrl+Z.

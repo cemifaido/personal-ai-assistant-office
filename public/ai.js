@@ -40,13 +40,16 @@ const AI_LOCAL_DEFAULT = 'http://localhost:11434/v1';
 
 function aiIsInternalHost(hostname) {
   const h = hostname.replace(/^\[|\]$/g, '').toLowerCase();
-  if (h === 'localhost' || h === '::1' || /^127\./.test(h)) return true;
+  if (h === 'localhost' || h === '::1') return true;
   const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (m) {
-    const [a, b] = [Number(m[1]), Number(m[2])];
-    return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+    const octets = m.slice(1).map(Number);
+    if (octets.some(n => n > 255)) return false;
+    const [a, b] = octets;
+    return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
   }
-  return /^f[cd][0-9a-f]{0,2}:/.test(h) || /^fe[89ab][0-9a-f]?:/.test(h);   // IPv6 ULA / link-local
+  // URL normalizza gli IPv6: il primo gruppo deve avere quattro cifre per questi prefissi.
+  return /^f[cd][0-9a-f]{2}:/.test(h) || /^fe[89ab][0-9a-f]:/.test(h);   // IPv6 ULA / link-local
 }
 
 /** Indirizzo normalizzato del server locale, o null se non ammesso. */

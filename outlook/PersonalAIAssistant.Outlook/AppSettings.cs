@@ -130,6 +130,20 @@ namespace PersonalAIAssistant
                 var data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(path, Encoding.UTF8));
                 if (data == null) return false;
                 object v;
+                // Un JSON sintatticamente valido non basta: {} o campi di tipo errato
+                // non devono nascondere un backup utilizzabile. Validare prima di mutare s.
+                if (!data.TryGetValue("version", out v) || !(v is int) || (int)v != 1) return false;
+                if (!data.TryGetValue("provider", out v) || !(v is string) || !ModelCatalog.ProviderNames.ContainsKey((string)v)) return false;
+                foreach (var field in new[] { "models", "keys", "urls", "keyApprovals" })
+                {
+                    if (!data.TryGetValue(field, out v))
+                    {
+                        if (field == "models" || field == "keys") return false;
+                        continue; // urls e consensi assenti nelle versioni precedenti
+                    }
+                    var values = v as Dictionary<string, object>;
+                    if (values == null || values.Values.Any(value => !(value is string))) return false;
+                }
                 if (data.TryGetValue("provider", out v) && v is string) s.Provider = (string)v;
                 if (data.TryGetValue("models", out v) && v is Dictionary<string, object>)
                     foreach (var kv in (Dictionary<string, object>)v) s.Models[kv.Key] = Convert.ToString(kv.Value);

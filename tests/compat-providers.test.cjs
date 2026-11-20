@@ -93,8 +93,10 @@ test('modello locale: solo questo PC o IP privati, nessun nome; normalizzazione'
   assert.equal(n('http://localhost:11434/v1/'), 'http://localhost:11434/v1');
   assert.equal(n('https://192.168.1.20:8080/v1'), 'https://192.168.1.20:8080/v1');
   assert.equal(n('http://[fd00::5]:8080/v1'), 'http://[fd00::5]:8080/v1');
+  assert.equal(n('http://[fe80::1]:8080/v1'), 'http://[fe80::1]:8080/v1');
   for (const bad of ['http://com:8080/v1', 'http://server-ai:8080/v1', 'http://8.8.8.8/v1', 'https://evil.example/v1',
-                     'http://172.32.0.1/v1', 'http://user:pw@127.0.0.1/v1', 'ftp://127.0.0.1/v1', 'http://127.0.0.1/v1?x=1'])
+                     'http://172.32.0.1/v1', 'http://user:pw@127.0.0.1/v1', 'ftp://127.0.0.1/v1', 'http://127.0.0.1/v1?x=1',
+                     'https://127.attacker.example/v1', 'http://[fc::1]/v1', 'http://[fd1::1]/v1', 'http://[fe8::1]/v1'])
     assert.equal(n(bad), null, bad);
 });
 

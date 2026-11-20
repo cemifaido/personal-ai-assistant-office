@@ -117,7 +117,7 @@ namespace PersonalAIAssistant
                         var name = ModelCatalog.ProviderNames[p];
                         // Si verifica solo cio' che e' gia' salvato (e quindi confermato): nessun invio prima delle conferme.
                         bool compat = ModelCatalog.IsCompatible(p);
-                        if (key != settings.GetKey(p) ||
+                        if (settings.RecoveredFrom != null || key != settings.GetKey(p) ||
                             (compat && ModelCatalog.NormalizeBaseUrl(urlDraft[p], p) != settings.BaseUrlFor(p)) ||
                             !settings.IsDestinationApproved(p))
                         {

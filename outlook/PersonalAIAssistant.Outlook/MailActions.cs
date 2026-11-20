@@ -173,6 +173,14 @@ namespace PersonalAIAssistant
         private static async Task<AiResult> RunAsync(string message, string prompt, string context)
         {
             var settings = AppSettings.Load();
+            if (settings.RecoveredFrom != null)
+            {
+                using (var f = new SettingsForm(settings, "Impostazioni recuperate dalla " + settings.RecoveredFrom +
+                    ": possono contenere chiavi o destinatari precedenti. Controllali e premi Salva prima di inviare dati."))
+                    if (f.ShowDialog() != DialogResult.OK) return null;
+                settings = AppSettings.Load();
+                if (settings.RecoveredFrom != null) return null;
+            }
             if (!settings.HasAnyKey())
             {
                 using (var f = new SettingsForm(settings, "Serve una TUA chiave API personale (non inclusa), legata al tuo contratto con il provider. " +
