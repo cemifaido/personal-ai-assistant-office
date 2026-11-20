@@ -1,20 +1,39 @@
 # Personal AI Assistant
 
-**Assistente AI per Word, Excel, PowerPoint e Outlook per Windows** - versione beta 0.2.1
+**Assistente AI integrato dentro Microsoft Word, Excel, PowerPoint e Outlook classico per Windows** - versione beta 0.2.1
 
 > [!IMPORTANT]
-> **Serve una tua chiave API personale.** Personal AI Assistant non funziona senza almeno una chiave API di **Google Gemini, OpenAI, Anthropic Claude, Qwen, MiniMax, DeepSeek o OpenRouter** (in Outlook anche un modello locale, senza chiave; nel pannello in via sperimentale).
+> **Serve una tua chiave API personale (modello BYOK).** Personal AI Assistant non è model-free e non funziona senza almeno una chiave API di **Google Gemini, OpenAI, Anthropic Claude, Qwen, MiniMax, DeepSeek o OpenRouter** (in Outlook è supportato anche un modello locale senza chiave; nel pannello in via sperimentale).
 > La chiave **non è inclusa** nell'installazione: la ottieni tu dal sito del provider ed è legata al **tuo account e al tuo contratto** con quel provider (piano gratuito o a pagamento, limiti, costi e condizioni d'uso sono quelli del provider).
 > Senza chiave il pannello si apre ma non può elaborare nulla. Per iniziare gratis il modo più semplice è una chiave [Google AI Studio](https://aistudio.google.com/apikey).
 
-Usa il modello che preferisci - **Google Gemini, OpenAI, Anthropic Claude, Qwen, MiniMax, DeepSeek o OpenRouter** - con la tua chiave API, direttamente dentro Office:
+## A cosa serve in dettaglio e con quali connettori lavora
+
+Personal AI Assistant aggiunge un **assistente AI nativo direttamente dentro l'interfaccia di Microsoft Office**, così da elaborare testi, dati, slide ed email senza uscire dalle applicazioni e senza dover usare chat o agenti esterni:
 
 - **Word**: riscrivi con il tono scelto, correggi le bozze, riassumi, traduci, genera testo e fai domande sull'intero documento.
 - **Excel**: formule in italiano a partire da una descrizione, analisi dei dati selezionati (con statistiche esatte), grafici e tabelle di esempio.
 - **PowerPoint**: riscrivi, correggi, accorcia o traduci il testo selezionato, crea slide da una scaletta e migliora i testi della slide selezionata.
 - **Outlook classico**: riassunto di più email selezionate e bozze di risposta (conferma, declina, chiarimenti o su misura), anche con account POP e IMAP.
 
-I testi vanno **direttamente** dal tuo PC al provider scelto: non c'è un server del progetto. Le chiavi restano sul tuo PC.
+**Connettori utilizzati:**
+- **Verso Office:** pannello web basato su **Office.js** (eseguito nel motore WebView2 di Office e caricato via manifest XML locale + pagine statiche su GitHub Pages) per **Word, Excel e PowerPoint**; add-in nativo **VSTO (.NET Framework 4.8)** integrato nella barra *Home* di **Outlook classico**. Non gestisce file PDF/Acrobat.
+- **Verso l'AI:** chiamate **HTTPS REST dirette** dal tuo PC alle API di **Google Gemini, OpenAI, Anthropic Claude, Qwen (Alibaba), MiniMax, DeepSeek o OpenRouter**, oppure chiamate HTTP/HTTPS verso un **server locale compatibile OpenAI** (**Ollama, `llama-server`, LM Studio** — pienamente supportato in Outlook, sperimentale nel pannello Office). Non esiste alcun server intermedio del progetto e le chiavi restano sul tuo PC.
+
+## Differenze rispetto a `mcp4office`
+
+Entrambi i progetti permettono di interagire con Microsoft Office su Windows tramite AI, ma con architetture e requisiti molto diversi:
+
+| Aspetto | Personal AI Assistant (questo progetto) | `mcp4office` |
+| --- | --- | --- |
+| **Dove si usa** | **Dentro Office**, come scheda *Personal AI* (pannello laterale in Word/Excel/PowerPoint e pulsanti in Outlook) | **Dall'esterno di Office**, dalla chat di un client AI compatibile con MCP (Antigravity, Claude Desktop/Code, Codex, ecc.) |
+| **Modello AI e costi** | **BYOK via API dirette**: richiede una tua chiave API (a consumo o piano gratuito del provider) oppure un modello locale (Ollama / `llama-server` / LM Studio) | **Model-free**: nessun modello integrato e nessuna chiave API; sfrutta l'abbonamento del tuo client MCP |
+| **Connettori verso l'AI** | **HTTPS REST diretti** verso Gemini, OpenAI, Claude, Qwen, MiniMax, DeepSeek, OpenRouter o endpoint locale OpenAI-compatibile | **MCP (JSON-RPC 2.0 su `stdio`)** verso client/agenti AI compatibili |
+| **Connettori verso Office** | **Office.js** (WebView2) per Word, Excel, PowerPoint + add-in **VSTO (.NET 4.8)** per Outlook classico (nessun supporto PDF/Acrobat) | **COM locale** su istanze aperte di Word, Excel, PowerPoint, Outlook classico, Acrobat + lettura diretta **PDF locali** |
+| **Tipo di utilizzo** | Azioni **rapide e guidate** sul documento o email aperta, con interfaccia a pulsanti senza uscire da Office | Flussi **agentici e cross-app** (confronto tra documenti/fogli, lettura PDF, compilazione multi-file in chat) |
+| **Diritti di installazione** | Profilo utente per Outlook; richiede **1 conferma amministratore (UAC)** la prima volta per la cartella condivisa del manifest di Word/Excel/PowerPoint | 100% profilo utente, **nessun UAC / amministratore** |
+
+In sintesi: scegli **Personal AI Assistant** se vuoi un assistente con pulsanti integrati direttamente in Office usando la tua chiave API (o un modello locale); scegli **`mcp4office`** se preferisci pilotare Office e leggere PDF dal tuo client MCP (Antigravity, Claude Desktop, Codex) senza gestire chiavi API.
 
 ## Installazione
 
