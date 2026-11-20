@@ -1,6 +1,17 @@
 # Personal AI Assistant
 
-**Assistente AI integrato dentro Microsoft Word, Excel, PowerPoint e Outlook classico per Windows** - versione beta 0.2.1
+> 🇮🇹 **Italiano** | 🇬🇧 **[English](README.en.md)**
+
+**Assistente AI integrato dentro Microsoft Word, Excel, PowerPoint e Outlook classico per Windows** — versione **beta 0.2.1**
+
+## Cos'è e come funziona
+
+**Personal AI Assistant** è un componente aggiuntivo open source che porta l'intelligenza artificiale **direttamente dentro la barra multifunzione di Microsoft Office** (scheda *Personal AI*), senza dover fare copia-incolla verso chat esterne e senza passare da server intermedi.
+
+**Come funziona in pratica (in 3 passi):**
+1. **Apri il documento o l'email in Office** (Word, Excel, PowerPoint o Outlook classico) e seleziona il testo, le celle, la slide o le email su cui vuoi lavorare.
+2. **Scegli un'azione dal pannello *Personal AI*** (riscrivi, correggi, traduci, riassumi, genera formule/grafici, crea slide o prepara una bozza di risposta).
+3. **Il tuo PC chiama direttamente il provider AI che hai scelto** (con la tua chiave API personale, oppure un modello locale come Ollama / `llama-server` / LM Studio) e ti mostra il risultato pronto da rileggere prima di applicarlo al documento o salvarlo come bozza.
 
 > [!IMPORTANT]
 > **Serve una tua chiave API personale (modello BYOK).** Personal AI Assistant non è model-free e non funziona senza almeno una chiave API di **Google Gemini, OpenAI, Anthropic Claude, Qwen, MiniMax, DeepSeek o OpenRouter** (in Outlook è supportato anche un modello locale senza chiave; nel pannello in via sperimentale).
@@ -33,7 +44,7 @@ Entrambi i progetti permettono di interagire con Microsoft Office su Windows tra
 | **Tipo di utilizzo** | Azioni **rapide e guidate** sul documento o email aperta, con interfaccia a pulsanti senza uscire da Office | Flussi **agentici e cross-app** (confronto tra documenti/fogli, lettura PDF, compilazione multi-file in chat) |
 | **Diritti di installazione** | Profilo utente per Outlook; richiede **1 conferma amministratore (UAC)** la prima volta per la cartella condivisa del manifest di Word/Excel/PowerPoint | 100% profilo utente, **nessun UAC / amministratore** |
 
-In sintesi: scegli **Personal AI Assistant** se vuoi un assistente con pulsanti integrati direttamente in Office usando la tua chiave API (o un modello locale); scegli **`mcp4office`** se preferisci pilotare Office e leggere PDF dal tuo client MCP (Antigravity, Claude Desktop, Codex) senza gestire chiavi API.
+In sintesi: scegli **Personal AI Assistant** se vuoi un assistente con pulsanti integrati direttamente in Office usando la tua chiave API (o un modello locale); scegli **[`mcp4office`](https://github.com/pai-office-automation/mcp4office/releases/tag/v0.5.7)** se preferisci pilotare Office e leggere PDF dal tuo client MCP (Antigravity, Claude Desktop, Codex) senza gestire chiavi API.
 
 ## Installazione
 
