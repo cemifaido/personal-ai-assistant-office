@@ -2,7 +2,7 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/); versioni secondo [Semantic Versioning](https://semver.org/lang/it/).
 
-## [0.2.1] - beta - in preparazione
+## [0.2.1] - beta - 2026-11-20
 
 Interventi di affidabilita' proposti nella revisione dell'architettura (Codex) e modello locale nel pannello.
 
@@ -12,7 +12,8 @@ Interventi di affidabilita' proposti nella revisione dell'architettura (Codex) e
 - Procedura documentata per tornare a una versione precedente del pannello e tabella delle versioni dei componenti (`docs/SVILUPPO.md`).
 
 ### Corretto
-- **Outlook: salvataggio delle impostazioni senza finestre di perdita.** Prima il file veniva cancellato e poi sostituito: un errore in mezzo lasciava senza impostazioni (chiavi comprese). Ora il nuovo file viene scritto, riletto e verificato, poi sostituito con `File.Replace` conservando la versione precedente come copia di backup. Al caricamento, se il file manca o e' danneggiato, le impostazioni vengono recuperate dalla copia di backup (o da un salvataggio interrotto) e le Impostazioni lo segnalano; un file danneggiato viene messo da parte, mai sovrascritto.
+- **Outlook: salvataggio delle impostazioni senza finestre di perdita.** Prima il file veniva cancellato e poi sostituito: un errore in mezzo lasciava senza impostazioni (chiavi comprese). Ora il nuovo file viene scritto, riletto e verificato, poi sostituito con `File.Replace` conservando la versione precedente come copia di backup. Al caricamento, se il file manca o e' danneggiato, le impostazioni vengono recuperate dalla copia di backup (o da un salvataggio interrotto) e le Impostazioni lo segnalano; un file danneggiato viene messo da parte, mai sovrascritto. Un file valido ma incompleto (es. `{}` o campi di tipo errato) non nasconde un backup utilizzabile; le impostazioni recuperate vanno controllate e salvate prima di inviare dati o verificare le chiavi (correzioni di Codex).
+- Pannello, modello locale: rifiutati nomi che iniziano per `127.` ma sono domini (es. `127.attacker.example`), ottetti oltre 255 e prefissi IPv6 abbreviati non privati (correzione di Codex).
 
 ### Sicurezza
 - Pubblicazione del pannello: i test automatici e i controlli di sintassi e del manifest sono obbligatori prima del deploy, che pubblica esattamente il pacchetto verificato; action fissate a SHA.
